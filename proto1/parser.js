@@ -1,3 +1,21 @@
+const hasLHS = (symbol) => symbol && ['ASSIGN', 'ARIT', 'CTRL'].includes(symbol.type) && symbol.token !== ')';
+const hasRHSOnly = (symbol) => {
+    if (!symbol)
+        return false;
+
+    switch (symbol.type) {
+        case 'FEATURE':
+        {
+            switch (symbol.token) {
+                case 'var':
+                    return true;
+            }
+        }
+        default:
+            return false;
+    }
+};
+
 const parserRecursive = (index, stack, depthSearch = true) => {
     // console.log('parserRecursive: ', index, stack[index], depthSearch);
     const simple = (type, value, idx = index + 1) => [{ nodeType: 'simple', type, value }, idx];
@@ -55,7 +73,7 @@ const parserRecursive = (index, stack, depthSearch = true) => {
     }
 };
 
-const runParser = (symbolStack) => {
+export const parse = (symbolStack) => {
 	const tree = [];
 
 	let cursor = 0;
