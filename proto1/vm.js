@@ -12,7 +12,7 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
                         if (variable)
                             return variable.value;
                         else
-                            throw Error(`Unknown name: ${node.value}`);
+                            throw Error(`unknown_name_error: ${node.value}`);
                     }
                 }
                 case 'CONST':
@@ -34,7 +34,7 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
                     const variable = variableContext.find((varr) => varr.name === variableName);
 
 					if (variable === undefined)
-						throw new Error(`No variable found with name ${variableName}`);
+						throw new Error(`unknown_name_error: ${variableName}`);
 
                     variable.value = newValue;
 
@@ -47,7 +47,7 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
                     return `NEW VAR ${varName}`;
                 }
                 default:
-					throw new Error(`Unknown node type ${node.type}`);
+					throw new Error(`unknown_node_error: ${node.type}`);
                     // return execRecursive(node.rhs, variableContext);
             }
         }
