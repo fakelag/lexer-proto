@@ -1,0 +1,17 @@
+{
+	"name": "lexer-proto",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"proto0": "node -r esm proto0.js",
+		"proto1": "node -r esm proto1/test.js"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"esm": "^3.2.25",
+		"jest": "^24.9.0"
+	}
+}
