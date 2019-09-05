@@ -33,31 +33,35 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
                     const newValue = execRecursive(node.rhs, variableContext);
                     const variable = variableContext.find((varr) => varr.name === variableName);
 
-                    if (variable === undefined) throw new Error(`No variable found with name ${variableName}`);
+					if (variable === undefined)
+						throw new Error(`No variable found with name ${variableName}`);
+
                     variable.value = newValue;
 
-                    return `Assigned ${newValue} to variable ${variable.name}`;
+                    return `ASSIGN ${variable.name}=${newValue}`;
                 }
                 case 'var':
 				{
                     const varName = execRecursive(node.rhs, variableContext);
                     variableContext.push({ name: varName, value: null });
-                    return `Created new variable named ${varName}`;
+                    return `NEW VAR ${varName}`;
                 }
                 default:
-                    console.log('Unknown case: ', node.type);
-                    return execRecursive(node.rhs, variableContext);
+					throw new Error(`Unknown node type ${node.type}`);
+                    // return execRecursive(node.rhs, variableContext);
             }
         }
     }
 };
 
-const executor = (syntaxTree) => {
-    console.log('Executing...');
+export const execute = (syntaxTree) => {
+	const results = [];
+	const variableContext = [];
 
-    const variableContext = [];
     for (const node of syntaxTree) {
         const res = execRecursive(node, variableContext, true);
-        console.log(res);
-    }
+        results.push(res);
+	}
+
+	return results;
 };
