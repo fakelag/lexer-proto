@@ -98,3 +98,26 @@ describe('Simple arithmetic operations', () => {
 		expect(results[3]).toBe(22);
 	});
 });
+
+describe('Variable references', () => {
+	test('Running code (Known references)', () => {
+		const tokens = lexer.lex('var xyz=2; var abc = 40 + xyz;');
+		const syntaxTree = parser.parse(tokens);
+
+		expect(() => vm.execute(syntaxTree)).not.toThrow();
+	});
+
+	test('Running code (Unknown variable reference)', () => {
+		const tokens = lexer.lex('var abc = 40 + xyz;');
+		const syntaxTree = parser.parse(tokens);
+
+		expect(() => vm.execute(syntaxTree)).toThrow();
+	});
+
+	test('Running code (Reference current variable)', () => {
+		const tokens = lexer.lex('var abc = 40 + abc;');
+		const syntaxTree = parser.parse(tokens);
+
+		expect(() => vm.execute(syntaxTree)).toThrow();
+	});
+});
