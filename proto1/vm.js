@@ -1,3 +1,5 @@
+export const uninitValue = Symbol('uninitialized');
+
 const execRecursive = (node, variableContext, resolveNames = false) => {
     switch (node.nodeType) {
         case 'simple':
@@ -7,7 +9,7 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
                 case 'NAME':
                 {
                     if (resolveNames) {
-                        const variable = variableContext.find((varr) => varr.name === node.value);
+                        const variable = variableContext.find((varr) => varr.name === node.value && varr.value !== uninitValue);
 
                         if (variable)
                             return variable.value;
@@ -43,7 +45,7 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
                 case 'var':
 				{
                     const varName = execRecursive(node.rhs, variableContext);
-                    variableContext.push({ name: varName, value: null });
+                    variableContext.push({ name: varName, value: uninitValue });
                     return `NEW VAR ${varName}`;
                 }
                 default:
