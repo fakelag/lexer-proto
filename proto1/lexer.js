@@ -1,5 +1,6 @@
-const lexer = (source) => {
-    console.log('Lexing source: ', source);
+export const features = ['var'];
+
+export const lex = (source) => {
 	const symbolStack = [];
 	let currentSymbol = '';
 	let currentIndex = 0;
