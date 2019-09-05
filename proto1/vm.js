@@ -26,17 +26,20 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
                 case '-': return execRecursive(node.lhs, variableContext, true) - execRecursive(node.rhs, variableContext, true);
                 case '/': return execRecursive(node.lhs, variableContext, true) / execRecursive(node.rhs, variableContext, true);
                 case '*': return execRecursive(node.lhs, variableContext, true) * execRecursive(node.rhs, variableContext, true);
-                case 'ASSIGN': { // rhs contains the expression, lhs is var name
+                case 'ASSIGN':
+				{
+					// rhs contains the expression, lhs is var name
                     const variableName = execRecursive(node.lhs, variableContext);
                     const newValue = execRecursive(node.rhs, variableContext);
                     const variable = variableContext.find((varr) => varr.name === variableName);
 
-                    if(variable === undefined) throw new Error(`No variable found with name ${variableName}`);
+                    if (variable === undefined) throw new Error(`No variable found with name ${variableName}`);
                     variable.value = newValue;
 
                     return `Assigned ${newValue} to variable ${variable.name}`;
                 }
-                case 'var': {
+                case 'var':
+				{
                     const varName = execRecursive(node.rhs, variableContext);
                     variableContext.push({ name: varName, value: null });
                     return `Created new variable named ${varName}`;
@@ -53,7 +56,7 @@ const executor = (syntaxTree) => {
     console.log('Executing...');
 
     const variableContext = [];
-    for(const node of syntaxTree) {
+    for (const node of syntaxTree) {
         const res = execRecursive(node, variableContext, true);
         console.log(res);
     }
