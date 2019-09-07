@@ -40,9 +40,9 @@ const execRecursive = (node, context, resolveNames = false) => {
 				case 'DOUBLECONST':
 					return node.value;
 				case '+':
-					return node.value.value;
+					return execRecursive(node.value, context, true);
 				case '-':
-					return -node.value.value;
+					return -execRecursive(node.value, context, true);
 				default:
 					throw new Error(`Unhandled node type: ${node.type}`);
             }
