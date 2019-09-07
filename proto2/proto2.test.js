@@ -118,3 +118,14 @@ describe('Variable references', () => {
 		expect(() => vm.execute(syntaxTree)).toThrow();
 	});
 });
+
+describe('Double constants', () => {
+	test('Running code', () => {
+		const tokens = lexer.lex('var x = 0.5; 20 + x;');
+		const syntaxTree = parser.parse(tokens);
+
+		const results = vm.execute(syntaxTree);
+		expect(results.length).toBe(2);
+		expect(results[1]).toBe(20 + 0.5);
+	});
+});
