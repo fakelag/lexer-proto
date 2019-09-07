@@ -41,8 +41,8 @@ export const lex = (source) => {
 					break;
 				case ')':
 				case '(':
-				// case '{':
-				// case '}':
+				case '{':
+				case '}':
 					type = 'CTRL';
 					break;
 				case ';':
@@ -68,9 +68,9 @@ export const lex = (source) => {
 		switch (source[i]) {
 			case '\n':
 			case '\t':
-			currentIndex = 0;
-			++currentLine;
-			continue;
+				currentIndex = 0;
+				++currentLine;
+				continue;
 			case ')':
 			case '(':
 			case '{':
