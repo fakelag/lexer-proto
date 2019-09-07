@@ -10,6 +10,7 @@
 | ✓ | Function call support (with arguments) |
 | ✓ | All prototype1 features (Vars, assigns, math, ...etc) |
 | ✓ | Power operator (**) |
+| ✓ | Commandline interpreter |
 
 
 ## TODO (prototype 3)
