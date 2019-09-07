@@ -44,6 +44,26 @@ describe('Variable and Assign tests', () => {
 	});
 });
 
+describe('Order of operations (Arithmetics)', () => {
+	test('Running code', () => {
+		const tokens = lexer.lex('			\
+			(18 - 3) * 10 + 2;				\
+			6 * 6 + 7 * 5;					\
+			146 + 7 * 14 - 31;				\
+			4 ** 2 + -(40 / 20) * 3;		\
+			-66 - 30 / 10 ** (4 / 2) + 5;	\
+		');
+		const syntaxTree = parser.parse(tokens);
+		const results = vm.execute(syntaxTree);
+
+		expect(results[0]).toBe((18 - 3) * 10 + 2);
+		expect(results[1]).toBe(6 * 6 + 7 * 5);
+		expect(results[2]).toBe(146 + 7 * 14 - 31);
+		expect(results[3]).toBe(4 ** 2 + -(40 / 20) * 3);
+		expect(results[4]).toBe(-66 - 30 / 10 ** (4 / 2) + 5);
+	});
+});
+
 describe('Return result for name', () => {
 	test('Running code', () => {
 		const tokens = lexer.lex('var abc = 40; abc;');
