@@ -7,6 +7,7 @@
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"proto0": "node -r esm ./tmp/proto0.js",
 		"proto1": "jest ./proto1/",
+		"proto2": "jest ./proto2/"
 	},
 	"author": "",
 	"license": "ISC",
