@@ -129,3 +129,54 @@ describe('Double constants', () => {
 		expect(results[1]).toBe(20 + 0.5);
 	});
 });
+
+describe('Scope & Variables', () => {
+	test('Running code (Creating a scope)', () => {
+		const tokens = lexer.lex('	\
+			{						\
+				var a = 4;			\
+				var b = a + 4;		\
+			}						\
+		');
+		const syntaxTree = parser.parse(tokens);
+
+		expect(() => vm.execute(syntaxTree)).not.toThrow();
+
+		const results = vm.execute(syntaxTree);
+		expect(results.length).toBe(1);
+	});
+
+	test('Running code (Access to upper scope)', () => {
+		const tokens = lexer.lex('	\
+			{						\
+				var a = 4;			\
+				var b = a + 4;		\
+				{					\
+					var c = a + b; 	\
+				}					\
+			}						\
+		');
+
+		const syntaxTree = parser.parse(tokens);
+
+		expect(() => vm.execute(syntaxTree)).not.toThrow();
+	});
+
+	test('Running code (Throw on cross scope access)', () => {
+		const tokens = lexer.lex('	\
+			{						\
+				var a = 4;			\
+				var b = a + 4;		\
+				{					\
+					var c = a + b; 	\
+				}					\
+				{					\
+					var d = c + b; 	\
+				}					\
+			}						\
+		');
+		const syntaxTree = parser.parse(tokens);
+
+		expect(() => vm.execute(syntaxTree)).toThrow();
+	});
+});
