@@ -1,4 +1,3 @@
-import program from 'commander';
 import { lex } from './lexer';
 import { parse } from './parser';
 import { executeWithContext } from './vm';
