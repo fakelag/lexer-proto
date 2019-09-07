@@ -36,7 +36,8 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
                 case '+': return execRecursive(node.lhs, variableContext, true) + execRecursive(node.rhs, variableContext, true);
                 case '-': return execRecursive(node.lhs, variableContext, true) - execRecursive(node.rhs, variableContext, true);
                 case '/': return execRecursive(node.lhs, variableContext, true) / execRecursive(node.rhs, variableContext, true);
-                case '*': return execRecursive(node.lhs, variableContext, true) * execRecursive(node.rhs, variableContext, true);
+				case '*': return execRecursive(node.lhs, variableContext, true) * execRecursive(node.rhs, variableContext, true);
+				case '**': return execRecursive(node.lhs, variableContext, true) ** execRecursive(node.rhs, variableContext, true);
                 case 'ASSIGN':
 				{
 					// rhs contains the expression, lhs is var name
