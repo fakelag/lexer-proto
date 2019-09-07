@@ -5,8 +5,10 @@
 	"main": "index.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"proto0": "node -r esm proto0.js",
-		"proto1": "jest ./proto1/"
+		"proto0": "node -r esm ./tmp/proto0.js",
+		"proto1": "jest ./proto1/",
+		"proto2-t": "jest ./proto2/",
+		"proto2": "node -r esm ./proto2/index.js"
 	},
 	"author": "",
 	"license": "ISC",
