@@ -65,13 +65,12 @@ export const lex = (source) => {
 	};
 
 	for (let i = 0; i < source.length; ++i) {
-		if (source[i] === '\n') {
+		switch (source[i]) {
+			case '\n':
+			case '\t':
 			currentIndex = 0;
 			++currentLine;
 			continue;
-		}
-
-		switch (source[i]) {
 			case ')':
 			case '(':
 			case '{':
