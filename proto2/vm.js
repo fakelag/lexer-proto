@@ -79,3 +79,17 @@ export const execute = (syntaxTree) => {
 
 	return results;
 };
+
+export const executeWithContext = (syntaxTree, variableContext = []) => {
+	const results = [];
+
+    for (const node of syntaxTree) {
+        const res = execRecursive(node, variableContext, true);
+        results.push(res);
+	}
+
+	return {
+		results,
+		variableContext,
+	};
+};
