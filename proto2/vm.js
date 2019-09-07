@@ -5,7 +5,6 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
         case 'simple':
         {
             switch (node.type) {
-                default:
                 case 'NAME':
                 {
                     if (resolveNames) {
@@ -27,7 +26,13 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
 				}
                 case 'INTCONST':
 				case 'DOUBLECONST':
-                    return node.value;
+					return node.value;
+				case '+':
+					return node.value.value;
+				case '-':
+					return -node.value.value;
+				default:
+					throw new Error(`Unhandled node type: ${node.type}`);
             }
         }
         case 'complex':
