@@ -26,28 +26,28 @@ export const parse = (symbols) => {
 			case 'NAME':
 				switch (lbp) {
 					case -1:
-						return { _t: symbol.token, lbp, value: () => simple(symbol.token, expression(lbp), symbol.dbg)};
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, expression(lbp), symbol.dbg)};
 					default:
-						return { _t: symbol.token, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
 				}
 			case 'DOUBLECONST':
 			case 'INTCONST':
-				return { _t: symbol.token, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
+				return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
 			case 'ASSIGN':
-				return { _t: symbol.token, lbp, eval: (left) => complex(symbol.type, left, expression(lbp), symbol.dbg) };
+				return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.type, left, expression(lbp), symbol.dbg) };
 			case 'ARIT':
 			{
 				switch (symbol.token) {
 					case '+':
-						return { _t: symbol.token, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg),
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg),
 							value: () => simple(symbol.token, expression(-1), symbol.dbg) };
 					case '-':
-						return { _t: symbol.token, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg),
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg),
 							value: () => simple(symbol.token, expression(-1), symbol.dbg) };
 					case '*':
 					case '/':
 					case '**':
-						return { _t: symbol.token, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg) };
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg) };
 					default:
 						throw new Error(`Unknown ARIT operator: ${symbol.token}`);
 				}
@@ -59,6 +59,7 @@ export const parse = (symbols) => {
 					{
 						return {
 							_t: symbol.token,
+							_dbg: symbol.dbg,
 							lbp,
 							value: () => {
 								const expr = expression();
@@ -73,15 +74,15 @@ export const parse = (symbols) => {
 						};
 					}
 					case ')':
-						return { _t: symbol.token, lbp, value: () => simple('ENDCALL', null) };
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple('ENDCALL', null) };
 					default:
 						throw new Error(`Unknown CTRL operator: ${symbol.token}`);
 				}
 			}
 			case 'EOE':
 				switch (symbol.token) {
-					case ';': return { _t: symbol.token, lbp };
-					case ',': return { _t: symbol.token, lbp, eval: (left) => [left, expression()]  };
+					case ';': return { _t: symbol.token, _dbg: symbol.dbg, lbp };
+					case ',': return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => [left, expression()]  };
 					default: throw new Error(`Unknown EOE operator: ${symbol.token}`);
 				}
 			default:
@@ -113,6 +114,9 @@ export const parse = (symbols) => {
 	
 		if (rbp === -1)
 			return left;
+		
+		if (parserState.currentToken() === undefined)
+			throw new Error(`Expected: ; at line ${oldToken._dbg.line} col ${oldToken._dbg.col + 1}`);
 
 		while (rbp < parserState.currentToken().lbp) {
 			const t = parserState.currentToken();
