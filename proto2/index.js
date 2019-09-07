@@ -1,13 +1,13 @@
 import { lex } from './lexer';
 import { parse } from './parser';
-import { executeWithContext } from './vm';
+import { executeWithContext, createInitialContext } from './vm';
 
 const readline = require('readline').createInterface({
 	input: process.stdin,
 	output: process.stdout,
 });
 
-const variableContext = [];
+const variableContext = createInitialContext();
 
 const interpret = () => {
 	readline.question('> ', (line) => {

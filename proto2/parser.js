@@ -8,6 +8,8 @@ const leftBindingPow = {
 	'**': 5,
 	'(': 2,
 	')': 0,
+	'{': 0,
+	'}': 0,
 	'var': -1,
 	';': 0,
 	',': 2,
@@ -75,6 +77,22 @@ export const parse = (symbols) => {
 					}
 					case ')':
 						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple('ENDCALL', null) };
+					case '{':
+						return {
+							_t: symbol.token,
+							_dbg: symbol.dbg,
+							lbp,
+							value: () => {
+								let exprList = [];
+								while (parserState.currentToken()._t !== '}') {
+									exprList.push(expression());
+									parserState.nextToken();
+								}
+								return simple('SCOPE', exprList, symbol.dbg);
+							},
+						};
+					case '}':
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp };
 					default:
 						throw new Error(`Unknown CTRL operator: ${symbol.token}`);
 				}
@@ -111,7 +129,7 @@ export const parse = (symbols) => {
 	const expression = (rbp = 0) => {
 		let oldToken = parserState.nextToken();
 		let left = oldToken.value();
-	
+
 		if (rbp === -1)
 			return left;
 		
@@ -134,6 +152,8 @@ export const parse = (symbols) => {
 		topLevel.push(expression());
 		parserState.nextToken();
 	}
+
+	// console.log(topLevel.map((node) => node.type));
 
 	return topLevel;
 };

@@ -1,6 +1,6 @@
 export const uninitValue = Symbol('uninitialized');
 
-const execRecursive = (node, variableContext, resolveNames = false) => {
+const execRecursive = (node, context, resolveNames = false) => {
     switch (node.nodeType) {
         case 'simple':
         {
@@ -8,7 +8,7 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
                 case 'NAME':
                 {
                     if (resolveNames) {
-                        const variable = variableContext.find((varr) => varr.name === node.value && varr.value !== uninitValue);
+                        const variable = context.findVariable(node.value, false); // context.find((varr) => varr.name === node.value && varr.value !== uninitValue);
 
                         if (variable)
                             return variable.value;
@@ -20,17 +20,29 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
 				}
 				case 'var':
 				{
-					const varName = execRecursive(node.value, variableContext);
-					variableContext.push({ name: varName, value: uninitValue });
+					const varName = execRecursive(node.value, context);
+					context.scope[context.scope.length - 1].variables.push({ name: varName, value: uninitValue });
 					return varName;
+				}
+				case 'SCOPE':
+				{
+					context.scope.push({
+						isGlobal: false,
+						variables: [],
+					});
+
+					const results = node.value.map((scopedNode) => execRecursive(scopedNode, context, true));
+
+					context.scope.pop();
+					return results;
 				}
                 case 'INTCONST':
 				case 'DOUBLECONST':
 					return node.value;
 				case '+':
-					return node.value.value;
+					return execRecursive(node.value, context, true);
 				case '-':
-					return -node.value.value;
+					return -execRecursive(node.value, context, true);
 				default:
 					throw new Error(`Unhandled node type: ${node.type}`);
             }
@@ -38,23 +50,24 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
         case 'complex':
         {
             switch (node.type) {
-                case '+': return execRecursive(node.lhs, variableContext, true) + execRecursive(node.rhs, variableContext, true);
-                case '-': return execRecursive(node.lhs, variableContext, true) - execRecursive(node.rhs, variableContext, true);
-                case '/': return execRecursive(node.lhs, variableContext, true) / execRecursive(node.rhs, variableContext, true);
-				case '*': return execRecursive(node.lhs, variableContext, true) * execRecursive(node.rhs, variableContext, true);
-				case '**': return execRecursive(node.lhs, variableContext, true) ** execRecursive(node.rhs, variableContext, true);
+                case '+': return execRecursive(node.lhs, context, true) + execRecursive(node.rhs, context, true);
+                case '-': return execRecursive(node.lhs, context, true) - execRecursive(node.rhs, context, true);
+                case '/': return execRecursive(node.lhs, context, true) / execRecursive(node.rhs, context, true);
+				case '*': return execRecursive(node.lhs, context, true) * execRecursive(node.rhs, context, true);
+				case '**': return execRecursive(node.lhs, context, true) ** execRecursive(node.rhs, context, true);
                 case 'ASSIGN':
 				{
 					// rhs contains the expression, lhs is var name
 					let isNew = false;
 					if (node.lhs.type === 'var') {
 						// new variable
-						execRecursive(node.lhs, variableContext);
+						execRecursive(node.lhs, context);
 						isNew = true;
 					}
-                    const variableName = execRecursive(node.lhs, variableContext);
-                    const newValue = execRecursive(node.rhs, variableContext);
-                    const variable = variableContext.find((varr) => varr.name === variableName);
+
+                    const variableName = execRecursive(node.lhs, context);
+                    const newValue = execRecursive(node.rhs, context, true);
+                    const variable = context.findVariable(variableName, true); // = context.find((varr) => varr.name === variableName);
 
 					if (variable === undefined)
 						throw new Error(`unknown_name_error: ${variableName}`);
@@ -67,34 +80,52 @@ const execRecursive = (node, variableContext, resolveNames = false) => {
                 }
                 default:
 					throw new Error(`unknown_node_error: ${node.type}`);
-                    // return execRecursive(node.rhs, variableContext);
             }
         }
     }
 };
 
+export const createInitialContext = () => {
+	return {
+		scope: [{
+			isGlobal: true, // global scope
+			variables: [], // variables array for this scope
+		}],
+		findVariable: function (name, includeUninitialized) {
+			for (let i = this.scope.length - 1; i >= 0; --i) {
+				const variable = this.scope[i].variables.find((variable) => variable.name === name && (includeUninitialized || variable.value !== uninitValue));
+
+				if (variable)
+					return variable;
+			}
+
+			return null;
+		},
+	};
+};
+
 export const execute = (syntaxTree) => {
 	const results = [];
-	const variableContext = [];
+	const context = createInitialContext();
 
     for (const node of syntaxTree) {
-        const res = execRecursive(node, variableContext, true);
+        const res = execRecursive(node, context, true);
         results.push(res);
 	}
 
 	return results;
 };
 
-export const executeWithContext = (syntaxTree, variableContext = []) => {
+export const executeWithContext = (syntaxTree, context = createInitialContext()) => {
 	const results = [];
 
     for (const node of syntaxTree) {
-        const res = execRecursive(node, variableContext, true);
+        const res = execRecursive(node, context, true);
         results.push(res);
 	}
 
 	return {
 		results,
-		variableContext,
+		context,
 	};
 };
