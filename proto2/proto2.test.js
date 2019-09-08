@@ -46,12 +46,13 @@ describe('Variable and Assign tests', () => {
 
 describe('Order of operations (Arithmetics)', () => {
 	test('Running code', () => {
-		const tokens = lexer.lex('			\
-			(18 - 3) * 10 + 2;				\
-			6 * 6 + 7 * 5;					\
-			146 + 7 * 14 - 31;				\
-			4 ** 2 + -(40 / 20) * 3;		\
-			-66 - 30 / 10 ** (4 / 2) + 5;	\
+		const tokens = lexer.lex('																		\
+			(18 - 3) * 10 + 2;																			\
+			6 * 6 + 7 * 5;																				\
+			146 + 7 * 14 - 31;																			\
+			4 ** 2 + -(40 / 20) * 3;																	\
+			-66 - 30 / 10 ** (4 / 2) + 5;																\
+			-(3 * ((2 + -4) - 4) / -1 * (((-(3 - 2) + ((2) -2) - 4) ** 2)) * 2 + -(6 / (1 + 1 ) - 2 ** 2)); 	\
 		');
 		const syntaxTree = parser.parse(tokens);
 		const results = vm.execute(syntaxTree);
@@ -61,6 +62,7 @@ describe('Order of operations (Arithmetics)', () => {
 		expect(results[2]).toBe(146 + 7 * 14 - 31);
 		expect(results[3]).toBe(4 ** 2 + -(40 / 20) * 3);
 		expect(results[4]).toBe(-66 - 30 / 10 ** (4 / 2) + 5);
+		expect(results[5]).toBe(-(3 * ((2 + -4) - 4) / -1 * (((-(3 - 2) + ((2) -2) - 4) ** 2)) * 2 + -(6 / (1 + 1 ) - 2 ** 2)));
 	});
 });
 
