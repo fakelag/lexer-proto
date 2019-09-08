@@ -1,6 +1,6 @@
 export const uninitValue = Symbol('uninitialized');
 
-const execRecursive = (node, context, resolveNames = false) => {
+const execRecursive = (node, context, resolveNames) => {
     switch (node.nodeType) {
         case 'simple':
         {
@@ -61,28 +61,51 @@ const execRecursive = (node, context, resolveNames = false) => {
                 case '/': return execRecursive(node.lhs, context, true) / execRecursive(node.rhs, context, true);
 				case '*': return execRecursive(node.lhs, context, true) * execRecursive(node.rhs, context, true);
 				case '**': return execRecursive(node.lhs, context, true) ** execRecursive(node.rhs, context, true);
+				case '==': return execRecursive(node.lhs, context, true) === execRecursive(node.rhs, context, true);
+				case '!=': return execRecursive(node.lhs, context, true) !== execRecursive(node.rhs, context, true);
+				case '>=': return execRecursive(node.lhs, context, true) >= execRecursive(node.rhs, context, true);
+				case '<=': return execRecursive(node.lhs, context, true) <= execRecursive(node.rhs, context, true);
+				case '>': return execRecursive(node.lhs, context, true) > execRecursive(node.rhs, context, true);
+				case '<': return execRecursive(node.lhs, context, true) < execRecursive(node.rhs, context, true);
+				case '/=':
+				case '*=':
+				case '+=':
+				case '-=':
                 case '=':
 				{
 					// rhs contains the expression, lhs is var name
 					let isNew = false;
-					if (node.lhs.type === 'var') {
-						// new variable
-						execRecursive(node.lhs, context);
-						isNew = true;
-					}
+					let isAdditive = (node.type.length === 2);
 
-                    const variableName = execRecursive(node.lhs, context);
+					if (node.lhs.type === 'var')
+						isNew = true;
+
+					if (isAdditive && isNew) // attempting to += to a new variable
+						throw new Error(`additive_assign_to_undefined_variable: (line ${node._dbgInfo.line} col ${node._dbgInfo.col})`);
+
+					const variableName = execRecursive(node.lhs, context, false);
                     const newValue = execRecursive(node.rhs, context, true);
-                    const variable = context.findVariable(variableName, true); // = context.find((varr) => varr.name === variableName);
+                    const variable = context.findVariable(variableName, true);
 
 					if (variable === undefined)
-						throw new Error(`unknown_name_error: ${variableName}`);
+						throw new Error(`unknown_name_error: ${variableName}`); // variable was not found
 
-                    variable.value = newValue;
+					if (isAdditive) {
+						switch (node.type[0]) {
+							case '*': variable.value = variable.value * newValue; break;
+							case '/': variable.value = variable.value / newValue; break;
+							case '-': variable.value = variable.value - newValue; break;
+							case '+': variable.value = variable.value + newValue; break;
+							default:
+								throw new Error(`unknown_assignment_operator_error: ${node.type}`);
+						}
+					} else {
+						variable.value = newValue;
+					}
 
 					return isNew 
-						? `ASSIGN (new) ${variable.name}=${newValue}`
-						: `ASSIGN ${variable.name}=${newValue}`;
+						? `ASSIGN (new) ${variable.name}=${variable.value}`
+						: `ASSIGN ${variable.name}=${variable.value}`;
 				}
 				case 'CALL':
 				{
