@@ -1,3 +1,5 @@
+// import util from 'util';
+
 // infix binding powers
 const leftBindingPow = {
 	'=': 1,
@@ -6,13 +8,15 @@ const leftBindingPow = {
 	'*': 4,
 	'/': 4,
 	'**': 5,
-	'(': 2,
+	'(': 10, // high binding for function name
 	')': 0,
 	'{': 0,
 	'}': 0,
 	'var': -1,
 	';': 0,
 	',': 2,
+	'if': 0,
+	'while': 0,
 };
 
 export const parse = (symbols) => {
@@ -26,11 +30,31 @@ export const parse = (symbols) => {
 
 		switch (symbol.type) {
 			case 'NAME':
-				switch (lbp) {
-					case -1:
-						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, expression(lbp), symbol.dbg)};
+				switch (symbol.token) {
+					case 'while':
+					case 'if':
+					{
+						return {
+							_t: symbol.token,
+							_dbg: symbol.dbg,
+							lbp,
+							value: () => {
+								const condition = expression();
+								const scope = expression();
+
+								return complex(symbol.token.toUpperCase(), condition, scope, symbol.dbg);
+							},
+						};
+					}
 					default:
-						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
+					{
+						switch (lbp) {
+							case -1:
+								return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, expression(lbp), symbol.dbg)};
+							default:
+								return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
+						}
+					}
 				}
 			case 'DOUBLECONST':
 			case 'INTCONST':
@@ -70,8 +94,12 @@ export const parse = (symbols) => {
 							},
 							eval: (left) => {
 								const right = expression();
+
+								if (!Array.isArray(right) && right.type === 'ENDCALL') // function takes no arguments
+									return complex('CALL', left, [], symbol.dbg);
+
 								matchToken(')');
-								return complex('CALL', left, right, symbol.dbg);
+								return complex('CALL', left, Array.isArray(right) ? right : [right], symbol.dbg);
 							},
 						};
 					}
@@ -154,6 +182,7 @@ export const parse = (symbols) => {
 	}
 
 	// console.log(topLevel.map((node) => node.type));
+	// console.log(util.inspect(topLevel, false, null));
 
 	return topLevel;
 };

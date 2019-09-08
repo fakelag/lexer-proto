@@ -77,7 +77,44 @@ const execRecursive = (node, context, resolveNames = false) => {
 					return isNew 
 						? `ASSIGN (new) ${variable.name}=${newValue}`
 						: `ASSIGN ${variable.name}=${newValue}`;
-                }
+				}
+				case 'CALL':
+				{
+					if (node.lhs.type !== 'NAME')
+						throw new Error(`invalid_call_name_node: ${node.lhs}`);
+
+					if (!Array.isArray(node.rhs))
+						throw new Error(`invalid_call_args_node: ${node.rhs}`);
+
+					switch (node.lhs.value) {
+						case 'print':
+							// print uses the first arg and prints it. The rest are ignored.
+							if (node.rhs.length < 1)
+								throw new Error(`insufficient_print_args: ${node.rhs}`);
+
+							const result = execRecursive(node.rhs[0], context, true);
+							console.log('PRINT: ', result);
+							return result;
+						default:
+							throw new Error(`unknown_call_name: ${node.lhs}`);
+					}
+				}
+				case 'IF':
+				{
+					const exprResult = execRecursive(node.lhs, context, true);
+
+					if (!!exprResult)
+						return execRecursive(node.rhs, context, true);
+
+					return null;
+				}
+				case 'WHILE':
+				{
+					while (execRecursive(node.lhs, context, true))
+						execRecursive(node.rhs, context, true);
+
+					return null;
+				}
                 default:
 					throw new Error(`unknown_node_error: ${node.type}`);
             }
