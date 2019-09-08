@@ -99,6 +99,22 @@ const execRecursive = (node, context, resolveNames = false) => {
 							throw new Error(`unknown_call_name: ${node.lhs}`);
 					}
 				}
+				case 'IF':
+				{
+					const exprResult = execRecursive(node.lhs, context, true);
+
+					if (!!exprResult)
+						return execRecursive(node.rhs, context, true);
+
+					return null;
+				}
+				case 'WHILE':
+				{
+					while (execRecursive(node.lhs, context, true))
+						execRecursive(node.rhs, context, true);
+
+					return null;
+				}
                 default:
 					throw new Error(`unknown_node_error: ${node.type}`);
             }
