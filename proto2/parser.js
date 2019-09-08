@@ -1,3 +1,5 @@
+// import util from 'util';
+
 // infix binding powers
 const leftBindingPow = {
 	'=': 1,
@@ -6,7 +8,7 @@ const leftBindingPow = {
 	'*': 4,
 	'/': 4,
 	'**': 5,
-	'(': 2,
+	'(': 10, // high binding for function name
 	')': 0,
 	'{': 0,
 	'}': 0,
@@ -158,6 +160,7 @@ export const parse = (symbols) => {
 	}
 
 	// console.log(topLevel.map((node) => node.type));
+	// console.log(util.inspect(topLevel, false, null));
 
 	return topLevel;
 };
