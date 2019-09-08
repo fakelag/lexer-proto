@@ -55,7 +55,7 @@ const execRecursive = (node, context, resolveNames = false) => {
                 case '/': return execRecursive(node.lhs, context, true) / execRecursive(node.rhs, context, true);
 				case '*': return execRecursive(node.lhs, context, true) * execRecursive(node.rhs, context, true);
 				case '**': return execRecursive(node.lhs, context, true) ** execRecursive(node.rhs, context, true);
-                case 'ASSIGN':
+                case '=':
 				{
 					// rhs contains the expression, lhs is var name
 					let isNew = false;

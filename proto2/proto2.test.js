@@ -26,7 +26,7 @@ describe('Variable and Assign tests', () => {
 
 		expect(syntaxTree.length).toBe(1);
 		expect(syntaxTree[0].nodeType).toBe('complex');
-		expect(syntaxTree[0].type).toBe('ASSIGN');
+		expect(syntaxTree[0].type).toBe('=');
 		expect(syntaxTree[0].lhs.type).toBe('var');
 		expect(syntaxTree[0].lhs.value.type).toBe('NAME');
 		expect(syntaxTree[0].lhs.value.value).toBe('abc');
@@ -94,11 +94,11 @@ describe('Simple arithmetic operations', () => {
 		const syntaxTree = parser.parse(tokens);
 
 		expect(syntaxTree.length).toBe(3);
-		expect(syntaxTree[0].type).toBe('ASSIGN');
+		expect(syntaxTree[0].type).toBe('=');
 		expect(syntaxTree[0].rhs.nodeType).toBe('complex');
 		expect(syntaxTree[0].rhs.type).toBe('+');
 
-		expect(syntaxTree[1].type).toBe('ASSIGN');
+		expect(syntaxTree[1].type).toBe('=');
 		expect(syntaxTree[1].rhs.nodeType).toBe('complex');
 		expect(syntaxTree[1].rhs.type).toBe('-');
 		expect(syntaxTree[1].rhs.lhs.type).toBe('NAME');

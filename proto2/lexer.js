@@ -30,6 +30,10 @@ export const lex = (source) => {
 		} else {
 			switch (token) {
 				case '=':
+				case '+=':
+				case '-=':
+				case '*=':
+				case '/=':
 					type = 'ASSIGN';
 					break;
 				case '+':

@@ -3,6 +3,10 @@
 // infix binding powers
 const leftBindingPow = {
 	'=': 1,
+	'-=': 1,
+	'+=': 1,
+	'*=': 1,
+	'/=': 1,
 	'+': 3,
 	'-': 3,
 	'*': 4,
@@ -60,7 +64,7 @@ export const parse = (symbols) => {
 			case 'INTCONST':
 				return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
 			case 'ASSIGN':
-				return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.type, left, expression(lbp), symbol.dbg) };
+				return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg) };
 			case 'ARIT':
 			{
 				switch (symbol.token) {
