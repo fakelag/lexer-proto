@@ -20,7 +20,13 @@ const execRecursive = (node, context, resolveNames = false) => {
 				}
 				case 'var':
 				{
-					const varName = execRecursive(node.value, context);
+					const varName = execRecursive(node.value, context, false);
+
+					// Check that it doesn't already exist in the current scope.
+					// We don't check outer scopes, so shadowing variables is possible.
+					if (context.scope[context.scope.length - 1].variables.find((variable) => variable.name === varName))
+						throw new Error(`variable_already_exists: ${varName}`);
+
 					context.scope[context.scope.length - 1].variables.push({ name: varName, value: uninitValue });
 					return varName;
 				}
