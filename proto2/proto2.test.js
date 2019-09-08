@@ -34,13 +34,20 @@ describe('Variable and Assign tests', () => {
 		expect(syntaxTree[0].rhs.value).toBe(40);
 	});
 
-	test('Running code', () => {
+	test('Running code (Assigning a value to variable)', () => {
 		const tokens = lexer.lex('var abc = 40;');
 		const syntaxTree = parser.parse(tokens);
 		const results = vm.execute(syntaxTree);
 
 		expect(results.length).toBe(1);
 		expect(results[0]).toBe('ASSIGN (new) abc=40');
+	});
+
+	test('Running code (Throw on recreating same variable)', () => {
+		const tokens = lexer.lex('var abc = 40; var abc = 42;');
+		const syntaxTree = parser.parse(tokens);
+
+		expect(() => vm.execute(syntaxTree)).toThrow();
 	});
 });
 
@@ -200,5 +207,112 @@ describe('Scope & Variables', () => {
 		const syntaxTree = parser.parse(tokens);
 
 		expect(() => vm.execute(syntaxTree)).toThrow();
+	});
+});
+
+describe('Advanced operators', () => {
+	test('Equality operators (==, !=, >, >=, <=)', () => {
+		const results = vm.execute(parser.parse(lexer.lex('		\
+			10 == 10;											\
+			10 == 20;											\
+			10 != 20;											\
+			10 != 10;											\
+			10 >= 10;											\
+			10 >= 20;											\
+			10 <= 10;											\
+			20 <= 10;											\
+			10 < 20;											\
+			20 < 10;											\
+			20 > 10;											\
+			20 < 10;											\
+			var a = 10 == 10;									\
+			var b = 10 != 10;									\
+			var c = 10 > 10;									\
+			var d = 10 <= 10;									\
+			a;													\
+			b;													\
+			c;													\
+			d;													\
+		')));
+
+		expect(results.length).toBe(20);
+
+		expect(results[0]).toBe(true);
+		expect(results[1]).toBe(false);
+		expect(results[2]).toBe(true);
+		expect(results[3]).toBe(false);
+		expect(results[4]).toBe(true);
+		expect(results[5]).toBe(false);
+		expect(results[6]).toBe(true);
+		expect(results[7]).toBe(false);
+		expect(results[8]).toBe(true);
+		expect(results[9]).toBe(false);
+		expect(results[10]).toBe(true);
+		expect(results[11]).toBe(false);
+
+		expect(results[16]).toBe(true);
+		expect(results[17]).toBe(false);
+		expect(results[18]).toBe(false);
+		expect(results[19]).toBe(true);
+	});
+
+	test('Assignment operators (+=, -=, *=, /=)', () => {
+		const results = vm.execute(parser.parse(lexer.lex('		\
+			var a = 0;											\
+			a += 10;											\
+			a;													\
+			a -= 5;												\
+			a;													\
+			a *= 2;												\
+			a;													\
+			a /= 2;												\
+			a;													\
+		')));
+
+		expect(results[2]).toBe(10);
+		expect(results[4]).toBe(5);
+		expect(results[6]).toBe(10);
+		expect(results[8]).toBe(5);
+	});
+});
+
+describe('Conditional blocks', () => {
+	test('if conditional block', () => {
+		const results = vm.execute(parser.parse(lexer.lex('		\
+			var a = 10;											\
+			var b = 5;											\
+			if (a == 10) {										\
+				a + 1;											\
+			}													\
+			if (a != 10) {										\
+				a + 2;											\
+			}													\
+			if (a + b > 14)										\
+			{													\
+				a + 3;											\
+			}													\
+		')));
+
+		// [ 'ASSIGN (new) a=10', 'ASSIGN (new) b=5', [ 11 ], null, [ 13 ] ]
+		expect(results.length).toBe(5);
+		expect(results[2][0]).toBe(11);
+		expect(results[4][0]).toBe(13);
+	});
+
+	test('while block', () => {
+		const results = vm.execute(parser.parse(lexer.lex('		\
+			var a = 10;											\
+			var b = 0;											\
+			while (a > 5)										\
+			{													\
+				b += 2;											\
+				a -= 1;											\
+			}													\
+			b;													\
+		')));
+
+		// [ 'ASSIGN (new) a=10', 'ASSIGN (new) b=0', null, 10 ]
+		expect(results.length).toBe(4);
+		expect(results[3]).toBe(10);
 	});
 });
