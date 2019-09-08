@@ -70,8 +70,12 @@ export const parse = (symbols) => {
 							},
 							eval: (left) => {
 								const right = expression();
+
+								if (!Array.isArray(right) && right.type === 'ENDCALL') // function takes no arguments
+									return complex('CALL', left, [], symbol.dbg);
+
 								matchToken(')');
-								return complex('CALL', left, right, symbol.dbg);
+								return complex('CALL', left, Array.isArray(right) ? right : [right], symbol.dbg);
 							},
 						};
 					}
