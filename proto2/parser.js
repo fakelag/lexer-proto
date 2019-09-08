@@ -15,6 +15,8 @@ const leftBindingPow = {
 	'var': -1,
 	';': 0,
 	',': 2,
+	'if': 0,
+	'while': 0,
 };
 
 export const parse = (symbols) => {
@@ -28,11 +30,31 @@ export const parse = (symbols) => {
 
 		switch (symbol.type) {
 			case 'NAME':
-				switch (lbp) {
-					case -1:
-						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, expression(lbp), symbol.dbg)};
+				switch (symbol.token) {
+					case 'while':
+					case 'if':
+					{
+						return {
+							_t: symbol.token,
+							_dbg: symbol.dbg,
+							lbp,
+							value: () => {
+								const condition = expression();
+								const scope = expression();
+
+								return complex(symbol.token.toUpperCase(), condition, scope, symbol.dbg);
+							},
+						};
+					}
 					default:
-						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
+					{
+						switch (lbp) {
+							case -1:
+								return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, expression(lbp), symbol.dbg)};
+							default:
+								return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
+						}
+					}
 				}
 			case 'DOUBLECONST':
 			case 'INTCONST':
