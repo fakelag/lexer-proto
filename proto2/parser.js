@@ -7,18 +7,25 @@ const leftBindingPow = {
 	'+=': 1,
 	'*=': 1,
 	'/=': 1,
-	'+': 3,
-	'-': 3,
-	'*': 4,
-	'/': 4,
-	'**': 5,
+	'==': 2,
+	'!=': 2,
+	'>=': 2,
+	'<=': 2,
+	'>': 2,
+	'<': 2,
+	'!': 0,
+	'+': 4,
+	'-': 4,
+	'*': 5,
+	'/': 5,
+	'**': 6,
 	'(': 10, // high binding for function name
 	')': 0,
 	'{': 0,
 	'}': 0,
 	'var': -1,
 	';': 0,
-	',': 2,
+	',': 3,
 	'if': 0,
 	'while': 0,
 };
@@ -63,6 +70,7 @@ export const parse = (symbols) => {
 			case 'DOUBLECONST':
 			case 'INTCONST':
 				return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
+			case 'EQUALITY':
 			case 'ASSIGN':
 				return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg) };
 			case 'ARIT':
