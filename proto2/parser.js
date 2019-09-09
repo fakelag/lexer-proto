@@ -30,6 +30,8 @@ const leftBindingPow = {
 	',': 3,
 	'if': 0,
 	'while': 0,
+	'true': 0,
+	'false': 0,
 };
 
 export const parse = (symbols) => {
@@ -44,6 +46,9 @@ export const parse = (symbols) => {
 		switch (symbol.type) {
 			case 'NAME':
 				switch (symbol.token) {
+					case 'true':
+					case 'false':
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, symbol.token === 'true' ? true : false, symbol.dbg)};
 					case 'while':
 					case 'if':
 					{
@@ -170,7 +175,7 @@ export const parse = (symbols) => {
 	const matchToken = (token) => {
 		if (parserState.currentToken()._t !== token)
 			throw new Error(`Expected: ${token} got ${parserState.currentToken()._t}`);
-		
+
 		parserState.nextToken();
 	};
 
@@ -180,7 +185,7 @@ export const parse = (symbols) => {
 
 		if (rbp === -1)
 			return left;
-		
+
 		if (parserState.currentToken() === undefined)
 			throw new Error(`Expected: ; at line ${oldToken._dbg.line} col ${oldToken._dbg.col + 1}`);
 
@@ -190,12 +195,12 @@ export const parse = (symbols) => {
 
 			left = t.eval(left);
 		}
-	
+
 		return left;
 	};
 
 	const topLevel = [];
-	
+
 	while (parserState.tokenIndex < tokens.length) {
 		topLevel.push(expression());
 		parserState.nextToken();
