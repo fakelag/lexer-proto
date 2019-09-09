@@ -274,6 +274,78 @@ describe('Advanced operators', () => {
 		expect(results[6]).toBe(10);
 		expect(results[8]).toBe(5);
 	});
+
+	test('Increment & Decrement operators (++, --)', () => {
+		const results = vm.execute(parser.parse(lexer.lex('		\
+			var a = 0;											\
+			++a;												\
+			a;													\
+			a++;												\
+			a;													\
+			--a;												\
+			a;													\
+			a = 0;												\
+			if (++a == 1) {										\
+				a; 												\
+			}													\
+			if (a++ == 1) {										\
+				a; 												\
+			}													\
+			4 + ++a * 5 -(4 * a--) + a;							\
+		')));
+
+		expect(results.length).toBe(11);
+		expect(results[1]).toBe(1);
+		expect(results[2]).toBe(1);
+		expect(results[3]).toBe(1);
+		expect(results[4]).toBe(2);
+		expect(results[5]).toBe(1);
+		expect(results[6]).toBe(1);
+
+		expect(results[8][0]).toBe(1);
+		expect(results[9][0]).toBe(2);
+
+		expect(results[10]).toBe(9);
+	});
+
+	test('Negation operator (!)', () => {
+		const context = vm.createInitialContext();
+		const results = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var a = false;												\
+			if (!a) {													\
+				__flag();												\
+			}															\
+			a = true;													\
+			if (!a == false) {											\
+				__flag();												\
+			}															\
+			if (!!a == false) {											\
+				__die();												\
+			}															\
+		')), context);
+
+		expect(context.__flag).toBe(2);
+	});
+});
+
+describe('True & False keywords', () => {
+	test('Running code', () => {
+		const context = vm.createInitialContext();
+		const results = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var a = true;												\
+			if (a) {													\
+				__flag();												\
+			}															\
+			if (a == false) {											\
+				__die();												\
+			}															\
+			if (a == true) {											\
+				__flag();												\
+			}															\
+		')), context);
+
+		expect(context.__flag).toBe(2);
+	});
 });
 
 describe('Conditional blocks', () => {
