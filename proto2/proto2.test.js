@@ -326,6 +326,20 @@ describe('Advanced operators', () => {
 
 		expect(context.__flag).toBe(2);
 	});
+
+	test('Logical operators (&&, ||)', () => {
+		const context = vm.createInitialContext();
+		const results = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var a = 1;													\
+			var b = 2;													\
+			if (a == 1 && b == 2) __flag();								\
+			if (a == 1 && b == 1) __die();								\
+			if (a == 1 || b == 1) __flag();								\
+			if (a == 3 || b == 3) __die();								\
+		')), context);
+
+		expect(context.__flag).toBe(2);
+	});
 });
 
 describe('True & False keywords', () => {
