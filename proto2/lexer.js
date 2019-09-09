@@ -27,6 +27,9 @@ export const lex = (source) => {
 			} catch (err) {
 				throw new Error('Double parsing error: ' + err);
 			}
+		} else if (text.charAt(0) === '"' && text.charAt(text.length - 1) === '"') {
+			type = 'STRCONST';
+			token = text.substring(1, text.length - 1);
 		} else {
 			switch (token) {
 				case '&&':

@@ -76,9 +76,10 @@ export const parse = (symbols) => {
 						}
 					}
 				}
+			case 'STRCONST':
 			case 'DOUBLECONST':
 			case 'INTCONST':
-				return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
+				return { _t: symbol.token, _dbg: symbol.dbg, lbp: 0, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
 			case 'LOGICAL':
 			case 'EQUALITY':
 			case 'ASSIGN':

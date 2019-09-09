@@ -45,6 +45,7 @@ const execRecursive = (node, context, resolveNames) => {
 					context.scope.pop();
 					return results;
 				}
+				case 'STRCONST':
                 case 'INTCONST':
 				case 'DOUBLECONST':
 					return node.value;
