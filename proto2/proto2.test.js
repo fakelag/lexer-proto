@@ -159,6 +159,24 @@ describe('Double constants', () => {
 	});
 });
 
+describe('String constants', () => {
+	test('Running code', () => {
+		const context = vm.createInitialContext();
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var a = "abcdefg"; 											\
+			var b = a + "hijklmn";										\
+			a;															\
+			b;															\
+			if (b == "abcdefghijklmn") __flag();						\
+			if (b == "qwerty") __die();									\
+		')), context);
+
+		expect(results[2]).toBe('abcdefg');
+		expect(results[3]).toBe('abcdefghijklmn');
+		expect(context.__flag).toBe(1);
+	});
+});
+
 describe('Scope & Variables', () => {
 	test('Running code (Creating a scope)', () => {
 		const tokens = lexer.lex('	\
