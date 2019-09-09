@@ -7,6 +7,8 @@ const leftBindingPow = {
 	'+=': 1,
 	'*=': 1,
 	'/=': 1,
+	'&&': 1,
+	'||': 1,
 	'==': 2,
 	'!=': 2,
 	'>=': 2,
@@ -77,6 +79,7 @@ export const parse = (symbols) => {
 			case 'DOUBLECONST':
 			case 'INTCONST':
 				return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
+			case 'LOGICAL':
 			case 'EQUALITY':
 			case 'ASSIGN':
 				return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg) };

@@ -29,6 +29,10 @@ export const lex = (source) => {
 			}
 		} else {
 			switch (token) {
+				case '&&':
+				case '||':
+					type = 'LOGICAL';
+					break;
 				case '==':
 				case '!=':
 				case '>=':
@@ -86,6 +90,8 @@ export const lex = (source) => {
 				currentIndex = 0;
 				++currentLine;
 				continue;
+			case '|':
+			case '&':
 			case '!':
 			case '/':
 			case '*':
@@ -115,6 +121,18 @@ export const lex = (source) => {
 						break;
 					case '-':
 						if (source[i] !== '-')
+							break;
+
+						isDoubleOperand = true;
+						break;
+					case '&':
+						if (source[i] !== '&')
+							break;
+
+						isDoubleOperand = true;
+						break;
+					case '|':
+						if (source[i] !== '|')
 							break;
 
 						isDoubleOperand = true;
