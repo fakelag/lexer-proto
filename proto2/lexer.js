@@ -7,10 +7,10 @@ export const lex = (source) => {
 	const createSymbol = (text) => {
         let type;
 		let token = text;
-		
+
 		const isInteger = token.match(/[0-9]/g);
 		const isDouble = token.match(/[0-9]\./g);
-		
+
 		if (isInteger && !isDouble) {
 			type = 'INTCONST';
 
@@ -44,11 +44,14 @@ export const lex = (source) => {
 				case '/=':
 					type = 'ASSIGN';
 					break;
+				case '!':
 				case '+':
 				case '-':
 				case '/':
 				case '*':
 				case '**':
+				case '++':
+				case '--':
 					type = 'ARIT';
 					break;
 				case ')':

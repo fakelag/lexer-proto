@@ -19,7 +19,9 @@ const leftBindingPow = {
 	'*': 5,
 	'/': 5,
 	'**': 6,
-	'(': 10, // high binding for function name
+	'++': 10,
+	'--': 10,
+	'(': 20, // high binding for function name
 	')': 0,
 	'{': 0,
 	'}': 0,
@@ -76,6 +78,12 @@ export const parse = (symbols) => {
 			case 'ARIT':
 			{
 				switch (symbol.token) {
+					case '!':
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, expression(), symbol.dbg) };
+					case '++':
+					case '--':
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.token, left, 'post', symbol.dbg),
+							value: () => complex(symbol.token, expression(lbp), 'pre', symbol.dbg) };
 					case '+':
 						return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg),
 							value: () => simple(symbol.token, expression(-1), symbol.dbg) };
