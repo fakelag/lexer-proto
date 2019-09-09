@@ -15,9 +15,12 @@ const execRecursive = (node, context, resolveNames) => {
                         else
                             throw Error(`unknown_name_error: ${node.value}`);
 					}
-					
+
 					return node.value;
 				}
+				case 'true':
+				case 'false':
+					return node.value;
 				case 'var':
 				{
 					const varName = execRecursive(node.value, context, false);
@@ -49,6 +52,8 @@ const execRecursive = (node, context, resolveNames) => {
 					return execRecursive(node.value, context, true);
 				case '-':
 					return -execRecursive(node.value, context, true);
+				case '!':
+					return !execRecursive(node.value, context, true);
 				default:
 					throw new Error(`Unhandled node type: ${node.type}`);
             }
@@ -67,6 +72,24 @@ const execRecursive = (node, context, resolveNames) => {
 				case '<=': return execRecursive(node.lhs, context, true) <= execRecursive(node.rhs, context, true);
 				case '>': return execRecursive(node.lhs, context, true) > execRecursive(node.rhs, context, true);
 				case '<': return execRecursive(node.lhs, context, true) < execRecursive(node.rhs, context, true);
+				case '++':
+				case '--':
+				{
+					const variableName = execRecursive(node.lhs, context, false);
+					const variable = context.findVariable(variableName, true);
+
+					if (variable === undefined)
+						throw new Error(`unknown_name_error: ${variableName}`);
+
+					const oldValue = variable.value;
+
+					if (node.type === '++')
+						++variable.value;
+					else if (node.type === '--')
+						--variable.value;
+
+					return node.rhs === 'pre' ? variable.value : oldValue;
+				}
 				case '/=':
 				case '*=':
 				case '+=':
@@ -103,7 +126,7 @@ const execRecursive = (node, context, resolveNames) => {
 						variable.value = newValue;
 					}
 
-					return isNew 
+					return isNew
 						? `ASSIGN (new) ${variable.name}=${variable.value}`
 						: `ASSIGN ${variable.name}=${variable.value}`;
 				}
