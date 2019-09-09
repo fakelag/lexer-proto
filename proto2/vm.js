@@ -165,7 +165,7 @@ export const createInitialContext = () => {
 					return variable;
 			}
 
-			return null;
+			return undefined;
 		},
 	};
 };
