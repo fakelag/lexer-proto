@@ -124,6 +124,12 @@ const execRecursive = (node, context, resolveNames) => {
 							const result = execRecursive(node.rhs[0], context, true);
 							console.log('PRINT: ', result);
 							return result;
+						case '__die':
+							// user triggered unsuccessful exit (debugging feature)
+							throw new Error('error_exit_unsuccessful');
+						case '__flag':
+							// increment context flag (debugging feature)
+							return ++context.__flag;
 						default:
 							throw new Error(`unknown_call_name: ${node.lhs}`);
 					}
@@ -153,6 +159,7 @@ const execRecursive = (node, context, resolveNames) => {
 
 export const createInitialContext = () => {
 	return {
+		__flag: 0, // debug flag. Used by tests.
 		scope: [{
 			isGlobal: true, // global scope
 			variables: [], // variables array for this scope
