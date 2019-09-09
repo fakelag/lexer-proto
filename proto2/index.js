@@ -19,9 +19,12 @@ const interpret = () => {
 			if (process.env.NODE_ENV === 'debug')
 				console.log(util.inspect(syntaxTree, false, null));
 			else
-			console.log(executeWithContext(syntaxTree, variableContext).results);
+				console.log(executeWithContext(syntaxTree, variableContext).results);
 		} catch (err) {
 			console.error(err);
+
+			if (err.message === 'error_exit_unsuccessful')
+				process.exit(0);
 		}
 
 		interpret();
