@@ -3,20 +3,37 @@
 // infix binding powers
 const leftBindingPow = {
 	'=': 1,
-	'+': 3,
-	'-': 3,
-	'*': 4,
-	'/': 4,
-	'**': 5,
-	'(': 10, // high binding for function name
+	'-=': 1,
+	'+=': 1,
+	'*=': 1,
+	'/=': 1,
+	'&&': 1,
+	'||': 1,
+	'==': 2,
+	'!=': 2,
+	'>=': 2,
+	'<=': 2,
+	'>': 2,
+	'<': 2,
+	'!': 0,
+	'+': 4,
+	'-': 4,
+	'*': 5,
+	'/': 5,
+	'**': 6,
+	'++': 10,
+	'--': 10,
+	'(': 20, // high binding for function name
 	')': 0,
 	'{': 0,
 	'}': 0,
 	'var': -1,
 	';': 0,
-	',': 2,
+	',': 3,
 	'if': 0,
 	'while': 0,
+	'true': 0,
+	'false': 0,
 };
 
 export const parse = (symbols) => {
@@ -31,6 +48,9 @@ export const parse = (symbols) => {
 		switch (symbol.type) {
 			case 'NAME':
 				switch (symbol.token) {
+					case 'true':
+					case 'false':
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, symbol.token === 'true' ? true : false, symbol.dbg)};
 					case 'while':
 					case 'if':
 					{
@@ -59,11 +79,19 @@ export const parse = (symbols) => {
 			case 'DOUBLECONST':
 			case 'INTCONST':
 				return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
+			case 'LOGICAL':
+			case 'EQUALITY':
 			case 'ASSIGN':
-				return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.type, left, expression(lbp), symbol.dbg) };
+				return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg) };
 			case 'ARIT':
 			{
 				switch (symbol.token) {
+					case '!':
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, expression(), symbol.dbg) };
+					case '++':
+					case '--':
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.token, left, 'post', symbol.dbg),
+							value: () => complex(symbol.token, expression(lbp), 'pre', symbol.dbg) };
 					case '+':
 						return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => complex(symbol.token, left, expression(lbp), symbol.dbg),
 							value: () => simple(symbol.token, expression(-1), symbol.dbg) };
@@ -150,7 +178,7 @@ export const parse = (symbols) => {
 	const matchToken = (token) => {
 		if (parserState.currentToken()._t !== token)
 			throw new Error(`Expected: ${token} got ${parserState.currentToken()._t}`);
-		
+
 		parserState.nextToken();
 	};
 
@@ -160,7 +188,7 @@ export const parse = (symbols) => {
 
 		if (rbp === -1)
 			return left;
-		
+
 		if (parserState.currentToken() === undefined)
 			throw new Error(`Expected: ; at line ${oldToken._dbg.line} col ${oldToken._dbg.col + 1}`);
 
@@ -170,12 +198,12 @@ export const parse = (symbols) => {
 
 			left = t.eval(left);
 		}
-	
+
 		return left;
 	};
 
 	const topLevel = [];
-	
+
 	while (parserState.tokenIndex < tokens.length) {
 		topLevel.push(expression());
 		parserState.nextToken();

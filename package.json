@@ -8,7 +8,8 @@
 		"proto0": "node -r esm ./tmp/proto0.js",
 		"proto1": "jest ./proto1/",
 		"proto2-t": "jest ./proto2/",
-		"proto2": "node -r esm ./proto2/index.js"
+		"proto2": "node -r esm ./proto2/index.js",
+		"proto2-d": "export NODE_ENV=debug&&node -r esm ./proto2/index.js"
 	},
 	"author": "",
 	"license": "ISC",

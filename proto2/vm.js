@@ -1,6 +1,6 @@
 export const uninitValue = Symbol('uninitialized');
 
-const execRecursive = (node, context, resolveNames = false) => {
+const execRecursive = (node, context, resolveNames) => {
     switch (node.nodeType) {
         case 'simple':
         {
@@ -15,12 +15,21 @@ const execRecursive = (node, context, resolveNames = false) => {
                         else
                             throw Error(`unknown_name_error: ${node.value}`);
 					}
-					
+
 					return node.value;
 				}
+				case 'true':
+				case 'false':
+					return node.value;
 				case 'var':
 				{
-					const varName = execRecursive(node.value, context);
+					const varName = execRecursive(node.value, context, false);
+
+					// Check that it doesn't already exist in the current scope.
+					// We don't check outer scopes, so shadowing variables is possible.
+					if (context.scope[context.scope.length - 1].variables.find((variable) => variable.name === varName))
+						throw new Error(`variable_already_exists: ${varName}`);
+
 					context.scope[context.scope.length - 1].variables.push({ name: varName, value: uninitValue });
 					return varName;
 				}
@@ -43,6 +52,8 @@ const execRecursive = (node, context, resolveNames = false) => {
 					return execRecursive(node.value, context, true);
 				case '-':
 					return -execRecursive(node.value, context, true);
+				case '!':
+					return !execRecursive(node.value, context, true);
 				default:
 					throw new Error(`Unhandled node type: ${node.type}`);
             }
@@ -55,28 +66,71 @@ const execRecursive = (node, context, resolveNames = false) => {
                 case '/': return execRecursive(node.lhs, context, true) / execRecursive(node.rhs, context, true);
 				case '*': return execRecursive(node.lhs, context, true) * execRecursive(node.rhs, context, true);
 				case '**': return execRecursive(node.lhs, context, true) ** execRecursive(node.rhs, context, true);
-                case 'ASSIGN':
+				case '==': return execRecursive(node.lhs, context, true) === execRecursive(node.rhs, context, true);
+				case '!=': return execRecursive(node.lhs, context, true) !== execRecursive(node.rhs, context, true);
+				case '>=': return execRecursive(node.lhs, context, true) >= execRecursive(node.rhs, context, true);
+				case '<=': return execRecursive(node.lhs, context, true) <= execRecursive(node.rhs, context, true);
+				case '>': return execRecursive(node.lhs, context, true) > execRecursive(node.rhs, context, true);
+				case '<': return execRecursive(node.lhs, context, true) < execRecursive(node.rhs, context, true);
+				case '&&': return execRecursive(node.lhs, context, true) && execRecursive(node.rhs, context, true);
+				case '||': return execRecursive(node.lhs, context, true) || execRecursive(node.rhs, context, true);
+				case '++':
+				case '--':
 				{
-					// rhs contains the expression, lhs is var name
-					let isNew = false;
-					if (node.lhs.type === 'var') {
-						// new variable
-						execRecursive(node.lhs, context);
-						isNew = true;
-					}
-
-                    const variableName = execRecursive(node.lhs, context);
-                    const newValue = execRecursive(node.rhs, context, true);
-                    const variable = context.findVariable(variableName, true); // = context.find((varr) => varr.name === variableName);
+					const variableName = execRecursive(node.lhs, context, false);
+					const variable = context.findVariable(variableName, true);
 
 					if (variable === undefined)
 						throw new Error(`unknown_name_error: ${variableName}`);
 
-                    variable.value = newValue;
+					const oldValue = variable.value;
 
-					return isNew 
-						? `ASSIGN (new) ${variable.name}=${newValue}`
-						: `ASSIGN ${variable.name}=${newValue}`;
+					if (node.type === '++')
+						++variable.value;
+					else if (node.type === '--')
+						--variable.value;
+
+					return node.rhs === 'pre' ? variable.value : oldValue;
+				}
+				case '/=':
+				case '*=':
+				case '+=':
+				case '-=':
+                case '=':
+				{
+					// rhs contains the expression, lhs is var name
+					let isNew = false;
+					let isAdditive = (node.type.length === 2);
+
+					if (node.lhs.type === 'var')
+						isNew = true;
+
+					if (isAdditive && isNew) // attempting to += to a new variable
+						throw new Error(`additive_assign_to_undefined_variable: (line ${node._dbgInfo.line} col ${node._dbgInfo.col})`);
+
+					const variableName = execRecursive(node.lhs, context, false);
+                    const newValue = execRecursive(node.rhs, context, true);
+                    const variable = context.findVariable(variableName, true);
+
+					if (variable === undefined)
+						throw new Error(`unknown_name_error: ${variableName}`); // variable was not found
+
+					if (isAdditive) {
+						switch (node.type[0]) {
+							case '*': variable.value = variable.value * newValue; break;
+							case '/': variable.value = variable.value / newValue; break;
+							case '-': variable.value = variable.value - newValue; break;
+							case '+': variable.value = variable.value + newValue; break;
+							default:
+								throw new Error(`unknown_assignment_operator_error: ${node.type}`);
+						}
+					} else {
+						variable.value = newValue;
+					}
+
+					return isNew
+						? `ASSIGN (new) ${variable.name}=${variable.value}`
+						: `ASSIGN ${variable.name}=${variable.value}`;
 				}
 				case 'CALL':
 				{
@@ -95,6 +149,12 @@ const execRecursive = (node, context, resolveNames = false) => {
 							const result = execRecursive(node.rhs[0], context, true);
 							console.log('PRINT: ', result);
 							return result;
+						case '__die':
+							// user triggered unsuccessful exit (debugging feature)
+							throw new Error('error_exit_unsuccessful');
+						case '__flag':
+							// increment context flag (debugging feature)
+							return ++context.__flag;
 						default:
 							throw new Error(`unknown_call_name: ${node.lhs}`);
 					}
@@ -124,6 +184,7 @@ const execRecursive = (node, context, resolveNames = false) => {
 
 export const createInitialContext = () => {
 	return {
+		__flag: 0, // debug flag. Used by tests.
 		scope: [{
 			isGlobal: true, // global scope
 			variables: [], // variables array for this scope
@@ -136,7 +197,7 @@ export const createInitialContext = () => {
 					return variable;
 			}
 
-			return null;
+			return undefined;
 		},
 	};
 };

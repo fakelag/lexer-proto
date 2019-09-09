@@ -7,10 +7,10 @@ export const lex = (source) => {
 	const createSymbol = (text) => {
         let type;
 		let token = text;
-		
+
 		const isInteger = token.match(/[0-9]/g);
 		const isDouble = token.match(/[0-9]\./g);
-		
+
 		if (isInteger && !isDouble) {
 			type = 'INTCONST';
 
@@ -29,14 +29,33 @@ export const lex = (source) => {
 			}
 		} else {
 			switch (token) {
+				case '&&':
+				case '||':
+					type = 'LOGICAL';
+					break;
+				case '==':
+				case '!=':
+				case '>=':
+				case '<=':
+				case '<':
+				case '>':
+					type = 'EQUALITY';
+					break;
 				case '=':
+				case '+=':
+				case '-=':
+				case '*=':
+				case '/=':
 					type = 'ASSIGN';
 					break;
+				case '!':
 				case '+':
 				case '-':
 				case '/':
 				case '*':
 				case '**':
+				case '++':
+				case '--':
 					type = 'ARIT';
 					break;
 				case ')':
@@ -71,29 +90,81 @@ export const lex = (source) => {
 				currentIndex = 0;
 				++currentLine;
 				continue;
+			case '|':
+			case '&':
+			case '!':
+			case '/':
+			case '*':
+			case '+':
+			case '-':
+			case '<':
+			case '>':
+			case '=':
+			{
+				if (currentSymbol.length)
+					symbolStack.push(createSymbol(currentSymbol));
+
+				let isDoubleOperand = false;
+
+				switch (source[i + 1]) {
+					case '*':
+						if (source[i] !== '*')
+							break;
+
+						isDoubleOperand = true;
+						break;
+					case '+':
+						if (source[i] !== '+')
+							break;
+
+						isDoubleOperand = true;
+						break;
+					case '-':
+						if (source[i] !== '-')
+							break;
+
+						isDoubleOperand = true;
+						break;
+					case '&':
+						if (source[i] !== '&')
+							break;
+
+						isDoubleOperand = true;
+						break;
+					case '|':
+						if (source[i] !== '|')
+							break;
+
+						isDoubleOperand = true;
+						break;
+					case '=':
+						isDoubleOperand = true;
+						break;
+					default:
+						break;
+				}
+
+				if (isDoubleOperand) {
+					symbolStack.push(createSymbol(source[i] + source[++i]));
+					currentSymbol = '';
+					continue;
+				}
+
+				symbolStack.push(createSymbol(source[i]));
+				currentSymbol = '';
+				break;
+			}
 			case ')':
 			case '(':
 			case '{':
 			case '}':
 			case ';':
 			case ',':
-			case '=':
-			case '+':
-			case '-':
-			case '/':
-			case '*':
 			{
-				let sym = source[i];
-				if (source[i + 1] && source[i + 1] === '*') {
-					sym += '*';
-					++i;
-				}
-
 				if (currentSymbol.length)
 					symbolStack.push(createSymbol(currentSymbol));
 
-				symbolStack.push(createSymbol(sym));
-
+				symbolStack.push(createSymbol(source[i]));
 				currentSymbol = '';
 				break;
 			}
