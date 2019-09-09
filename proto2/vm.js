@@ -72,6 +72,8 @@ const execRecursive = (node, context, resolveNames) => {
 				case '<=': return execRecursive(node.lhs, context, true) <= execRecursive(node.rhs, context, true);
 				case '>': return execRecursive(node.lhs, context, true) > execRecursive(node.rhs, context, true);
 				case '<': return execRecursive(node.lhs, context, true) < execRecursive(node.rhs, context, true);
+				case '&&': return execRecursive(node.lhs, context, true) && execRecursive(node.rhs, context, true);
+				case '||': return execRecursive(node.lhs, context, true) || execRecursive(node.rhs, context, true);
 				case '++':
 				case '--':
 				{
