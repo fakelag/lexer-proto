@@ -20,7 +20,7 @@ const execRecursive = (node, context, resolveNames) => {
 				}
 				case 'break':
 				{
-					context.currentScope().isBreaking = true;
+					context.breakScope();
 					return null;
 				}
 				case 'return':
@@ -219,8 +219,16 @@ const execRecursive = (node, context, resolveNames) => {
 				}
 				case 'WHILE':
 				{
-					while (execRecursive(node.lhs, context, true))
+					context.pushScope(false, true);
+
+					while (execRecursive(node.lhs, context, true)) {
 						execRecursive(node.rhs, context, true);
+
+						if (context.currentScope().isBreaking)
+							break;
+					}
+
+					context.popScope();
 
 					return null;
 				}
@@ -252,14 +260,16 @@ export const createInitialContext = () => {
 			isGlobal: true, // global scope
 			isBreaking: false, // currently in the process of breaking from the scope.
 			isFunctionArgsScope: false, // is is the args scope of a function
+			isLoopScope: false, // is this a loop scope
 			variables: [], // variables array for this scope. Type CVariable
 			functions: [], // functions array. Type CFunction
 		}],
-		pushScope: function(isFunctionArgsScope = false) {
+		pushScope: function(isFunctionArgsScope = false, isLoopScope = false) {
 			this.scope.push({
 				isGlobal: false,
 				isBreaking: false,
 				isFunctionArgsScope,
+				isLoopScope,
 				variables: [],
 				functions: [],
 			})
@@ -269,6 +279,19 @@ export const createInitialContext = () => {
 		},
 		currentScope: function () {
 			return this.scope[this.scope.length - 1];
+		},
+		breakScope: function() {
+			for (let i = this.scope.length - 1; i >= 0; --i) {
+				const scope = this.scope[i];
+
+				if (scope.isGlobal)
+					throw new Error(`unhandled_break_statement: scope=${i}`);
+
+				scope.isBreaking = true; // Stop executing the current tree
+
+				if (scope.isLoopScope)
+					break;
+			}
 		},
 		returnToCaller: function (returnValue) {
 			for (let i = this.scope.length - 1; i >= 0; --i) {
