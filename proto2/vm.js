@@ -18,6 +18,18 @@ const execRecursive = (node, context, resolveNames) => {
 
 					return node.value;
 				}
+				case 'break':
+				{
+					context.breakScope();
+					return null;
+				}
+				case 'return':
+				{
+					const result = execRecursive(node.value, context, true);
+					context.returnToCaller();
+
+					return result;
+				}
 				case 'true':
 				case 'false':
 					return node.value;
@@ -27,23 +39,26 @@ const execRecursive = (node, context, resolveNames) => {
 
 					// Check that it doesn't already exist in the current scope.
 					// We don't check outer scopes, so shadowing variables is possible.
-					if (context.scope[context.scope.length - 1].variables.find((variable) => variable.name === varName))
+					if (context.currentScope().variables.find((variable) => variable.name === varName))
 						throw new Error(`variable_already_exists: ${varName}`);
 
-					context.scope[context.scope.length - 1].variables.push({ name: varName, value: uninitValue });
+					context.currentScope().variables.push({ name: varName, value: uninitValue });
 					return varName;
 				}
 				case 'SCOPE':
 				{
-					context.scope.push({
-						isGlobal: false,
-						variables: [],
-					});
+					context.pushScope();
 
-					const results = node.value.map((scopedNode) => execRecursive(scopedNode, context, true));
+					let result = null;
+					for (const scopedNode of node.value) {
+						result = execRecursive(scopedNode, context, true);
 
-					context.scope.pop();
-					return results;
+						if (context.currentScope().isBreaking)
+							break;
+					}
+
+					context.popScope();
+					return result;
 				}
 				case 'STRCONST':
                 case 'INTCONST':
@@ -141,15 +156,20 @@ const execRecursive = (node, context, resolveNames) => {
 					if (!Array.isArray(node.rhs))
 						throw new Error(`invalid_call_args_node: ${node.rhs}`);
 
-					switch (node.lhs.value) {
+					const functionName = node.lhs.value; // function names must be primitives
+					switch (functionName) {
 						case 'print':
+						{
 							// print uses the first arg and prints it. The rest are ignored.
+							// in the final version, we'll have virtual stdin, stdout and stderr
+							// that we'll use to direct IO
 							if (node.rhs.length < 1)
 								throw new Error(`insufficient_print_args: ${node.rhs}`);
 
 							const result = execRecursive(node.rhs[0], context, true);
 							console.log('PRINT: ', result);
 							return result;
+						}
 						case '__die':
 							// user triggered unsuccessful exit (debugging feature)
 							throw new Error('error_exit_unsuccessful');
@@ -157,7 +177,35 @@ const execRecursive = (node, context, resolveNames) => {
 							// increment context flag (debugging feature)
 							return ++context.__flag;
 						default:
-							throw new Error(`unknown_call_name: ${node.lhs}`);
+						{
+							const func = context.findFunction(functionName);
+
+							if (!func)
+								throw new Error(`unknown_call_name: ${node.lhs}`);
+
+							const callerArgs = node.rhs;
+
+							if (func.args.length !== callerArgs.length)
+								throw new Error(`invalid_fcall_args: ${callerArgs.length} expected ${func.args.length}`);
+
+							// create a(n outer) scope for the function arguments.
+							// this is where we'll handle calling by reference / calling by value
+							context.pushScope(true);
+
+							for (let i = 0; i < func.args.length; ++i) {
+								const fnArg = func.args[i];
+								const callArg = execRecursive(callerArgs[i], context, true);
+
+								const varName = execRecursive({ nodeType: 'simple', type: 'var', value: fnArg }, context, true);
+								const variable = context.findVariable(varName, true);
+								variable.value = callArg;
+							}
+
+							const result = execRecursive(func.code, context, true);
+
+							context.popScope();
+							return result;
+						}
 					}
 				}
 				case 'IF':
@@ -171,10 +219,32 @@ const execRecursive = (node, context, resolveNames) => {
 				}
 				case 'WHILE':
 				{
-					while (execRecursive(node.lhs, context, true))
+					context.pushScope(false, true);
+
+					while (execRecursive(node.lhs, context, true)) {
 						execRecursive(node.rhs, context, true);
 
+						if (context.currentScope().isBreaking)
+							break;
+					}
+
+					context.popScope();
+
 					return null;
+				}
+				case 'FUNCTION':
+				{
+					const prototype = node.lhs;
+
+					if (prototype.type !== 'FUNCDEF')
+						throw new Error(`invalid_function_prototype: ${prototype}`);
+
+					const functionName = execRecursive(prototype.lhs, context, false);
+					if (context.scope[context.scope.length - 1].functions.find((func) => func.name === functionName))
+						throw new Error(`function_already_exists: ${functionName}`);
+
+					context.scope[context.scope.length - 1].functions.push({ name: functionName, args: prototype.rhs, code: node.rhs });
+					return functionName;
 				}
                 default:
 					throw new Error(`unknown_node_error: ${node.type}`);
@@ -188,14 +258,70 @@ export const createInitialContext = () => {
 		__flag: 0, // debug flag. Used by tests.
 		scope: [{
 			isGlobal: true, // global scope
-			variables: [], // variables array for this scope
+			isBreaking: false, // currently in the process of breaking from the scope.
+			isFunctionArgsScope: false, // is is the args scope of a function
+			isLoopScope: false, // is this a loop scope
+			variables: [], // variables array for this scope. Type CVariable
+			functions: [], // functions array. Type CFunction
 		}],
+		pushScope: function(isFunctionArgsScope = false, isLoopScope = false) {
+			this.scope.push({
+				isGlobal: false,
+				isBreaking: false,
+				isFunctionArgsScope,
+				isLoopScope,
+				variables: [],
+				functions: [],
+			})
+		},
+		popScope: function() {
+			this.scope.pop();
+		},
+		currentScope: function () {
+			return this.scope[this.scope.length - 1];
+		},
+		breakScope: function() {
+			for (let i = this.scope.length - 1; i >= 0; --i) {
+				const scope = this.scope[i];
+
+				if (scope.isGlobal)
+					throw new Error(`unhandled_break_statement: scope=${i}`);
+
+				scope.isBreaking = true; // Stop executing the current tree
+
+				if (scope.isLoopScope)
+					break;
+			}
+		},
+		returnToCaller: function (returnValue) {
+			for (let i = this.scope.length - 1; i >= 0; --i) {
+				const scope = this.scope[i];
+
+				if (scope.isGlobal)
+					throw new Error(`unhandled_return_statement: scope=${i}`);
+
+				scope.isBreaking = true; // Stop executing the current tree
+
+				if (scope.isFunctionArgsScope)
+					break;
+			}
+		},
 		findVariable: function (name, includeUninitialized) {
 			for (let i = this.scope.length - 1; i >= 0; --i) {
 				const variable = this.scope[i].variables.find((variable) => variable.name === name && (includeUninitialized || variable.value !== uninitValue));
 
 				if (variable)
 					return variable;
+			}
+
+			return undefined;
+		},
+		findFunction: function(name) {
+			for (let i = this.scope.length - 1; i >= 0; --i) {
+				const func = this.scope[i].functions.find((fnc) => fnc.name === name);
+
+				if (func)
+					return func;
 			}
 
 			return undefined;

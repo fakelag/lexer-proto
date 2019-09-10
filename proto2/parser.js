@@ -32,6 +32,9 @@ const leftBindingPow = {
 	',': 3,
 	'if': 0,
 	'while': 0,
+	'function': 0,
+	'return': 0,
+	'break': 0,
 	'true': 0,
 	'false': 0,
 };
@@ -47,10 +50,15 @@ export const parse = (symbols) => {
 
 		switch (symbol.type) {
 			case 'NAME':
+			{
 				switch (symbol.token) {
+					case 'break':
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, null, symbol.dbg) };
+					case 'return':
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, expression(), symbol.dbg) };
 					case 'true':
 					case 'false':
-						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, symbol.token === 'true' ? true : false, symbol.dbg)};
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, symbol.token === 'true' ? true : false, symbol.dbg) };
 					case 'while':
 					case 'if':
 					{
@@ -60,9 +68,32 @@ export const parse = (symbols) => {
 							lbp,
 							value: () => {
 								const condition = expression();
-								const scope = expression();
+								const body = expression(); // body can be either a scope or any other expression
 
-								return complex(symbol.token.toUpperCase(), condition, scope, symbol.dbg);
+								if (Array.isArray(condition))
+									throw new Error(`Invalid condition at line ${symbol.dbg.line} col ${symbol.dbg.col}`);
+
+								return complex(symbol.token.toUpperCase(), condition, body, symbol.dbg);
+							},
+						};
+					}
+					case 'function':
+					{
+						return {
+							_t: symbol.token,
+							_dbg: symbol.dbg,
+							lbp,
+							value: () => {
+								const name = expression(-1);
+								const args = expression();
+								const body = expression();
+
+								const argsArray = args
+									? Array.isArray(args) ? args : [args]
+									: [];
+
+								return complex(symbol.token.toUpperCase(),
+									complex('FUNCDEF', name, argsArray, name.dbg), body, symbol.dbg);
 							},
 						};
 					}
@@ -76,6 +107,7 @@ export const parse = (symbols) => {
 						}
 					}
 				}
+			}
 			case 'STRCONST':
 			case 'DOUBLECONST':
 			case 'INTCONST':
@@ -118,13 +150,17 @@ export const parse = (symbols) => {
 							lbp,
 							value: () => {
 								const expr = expression();
+
+								if (expr.type === ')')
+									return null;
+
 								matchToken(')');
 								return expr;
 							},
 							eval: (left) => {
 								const right = expression();
 
-								if (!Array.isArray(right) && right.type === 'ENDCALL') // function takes no arguments
+								if (!Array.isArray(right) && right.type === ')') // function takes no arguments
 									return complex('CALL', left, [], symbol.dbg);
 
 								matchToken(')');
@@ -133,7 +169,7 @@ export const parse = (symbols) => {
 						};
 					}
 					case ')':
-						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple('ENDCALL', null) };
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(')', null) };
 					case '{':
 						return {
 							_t: symbol.token,
@@ -157,7 +193,13 @@ export const parse = (symbols) => {
 			case 'EOE':
 				switch (symbol.token) {
 					case ';': return { _t: symbol.token, _dbg: symbol.dbg, lbp };
-					case ',': return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => [left, expression()]  };
+					case ',': return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => {
+						const right = expression();
+						const leftArray = Array.isArray(left) ? left : [left];
+						const rightArray = Array.isArray(right) ? right : [right];
+
+						return leftArray.concat(rightArray);
+					}};
 					default: throw new Error(`Unknown EOE operator: ${symbol.token}`);
 				}
 			default:
