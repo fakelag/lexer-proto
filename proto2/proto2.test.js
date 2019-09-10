@@ -420,3 +420,49 @@ describe('Conditional blocks', () => {
 		expect(results[3]).toBe(10);
 	});
 });
+
+describe('Functions', () => {
+	test('Function declarations', () => {
+		const context = vm.createInitialContext();
+		vm.executeWithContext(parser.parse(lexer.lex('	\
+			function helloWorld()						\
+			{											\
+				print("Hello");							\
+			}											\
+		')), context);
+
+		expect(context.__flag).toBe(0);
+	});
+
+	test('Function call', () => {
+		const context = vm.createInitialContext();
+		vm.executeWithContext(parser.parse(lexer.lex('	\
+			function addFlag()							\
+			{											\
+				__flag();								\
+			}											\
+			addFlag();									\
+			addFlag();									\
+		')), context);
+
+		expect(context.__flag).toBe(2);
+	});
+
+	test('Function call (with arguments)', () => {
+		const context = vm.createInitialContext();
+		vm.executeWithContext(parser.parse(lexer.lex('	\
+			function addFlag(addDouble, setThisTo3)		\
+			{											\
+				if (addDouble)							\
+					__flag();							\
+				__flag();								\
+				if (setThisTo3 != 3)					\
+					__die();							\
+			}											\
+			addFlag(false, 3);							\
+			addFlag(true, 3);							\
+		')), context);
+
+		expect(context.__flag).toBe(3);
+	});
+});
