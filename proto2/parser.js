@@ -82,8 +82,12 @@ export const parse = (symbols) => {
 								const args = expression();
 								const body = expression();
 
+								const argsArray = args
+									? Array.isArray(args) ? args : [args]
+									: [];
+
 								return complex(symbol.token.toUpperCase(),
-									complex('FUNCDEF', name, args ? args : [], name.dbg), body, symbol.dbg);
+									complex('FUNCDEF', name, argsArray, name.dbg), body, symbol.dbg);
 							},
 						};
 					}
