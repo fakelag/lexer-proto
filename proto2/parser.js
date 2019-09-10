@@ -33,6 +33,8 @@ const leftBindingPow = {
 	'if': 0,
 	'while': 0,
 	'function': 0,
+	'return': 0,
+	'break': 0,
 	'true': 0,
 	'false': 0,
 };
@@ -50,9 +52,13 @@ export const parse = (symbols) => {
 			case 'NAME':
 			{
 				switch (symbol.token) {
+					case 'break':
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, null, symbol.dbg) };
+					case 'return':
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, expression(), symbol.dbg) };
 					case 'true':
 					case 'false':
-						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, symbol.token === 'true' ? true : false, symbol.dbg)};
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, symbol.token === 'true' ? true : false, symbol.dbg) };
 					case 'while':
 					case 'if':
 					{
