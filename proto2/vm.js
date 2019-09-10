@@ -18,6 +18,18 @@ const execRecursive = (node, context, resolveNames) => {
 
 					return node.value;
 				}
+				case 'break':
+				{
+					context.currentScope().isBreaking = true;
+					return null;
+				}
+				case 'return':
+				{
+					const result = execRecursive(node.value, context, true);
+					context.returnToCaller();
+
+					return result;
+				}
 				case 'true':
 				case 'false':
 					return node.value;
@@ -37,16 +49,16 @@ const execRecursive = (node, context, resolveNames) => {
 				{
 					context.pushScope();
 
-					const results = [];
+					let result = null;
 					for (const scopedNode of node.value) {
-						results.push(execRecursive(scopedNode, context, true));
+						result = execRecursive(scopedNode, context, true);
 
 						if (context.currentScope().isBreaking)
 							break;
 					}
 
 					context.popScope();
-					return results;
+					return result;
 				}
 				case 'STRCONST':
                 case 'INTCONST':
@@ -240,7 +252,6 @@ export const createInitialContext = () => {
 			isGlobal: true, // global scope
 			isBreaking: false, // currently in the process of breaking from the scope.
 			isFunctionArgsScope: false, // is is the args scope of a function
-			returnValue: undefined,
 			variables: [], // variables array for this scope. Type CVariable
 			functions: [], // functions array. Type CFunction
 		}],
@@ -249,7 +260,6 @@ export const createInitialContext = () => {
 				isGlobal: false,
 				isBreaking: false,
 				isFunctionArgsScope,
-				returnValue: undefined,
 				variables: [],
 				functions: [],
 			})
@@ -269,10 +279,8 @@ export const createInitialContext = () => {
 
 				scope.isBreaking = true; // Stop executing the current tree
 
-				if (scope.isFunctionArgsScope) {
-					scope.returnValue = returnValue;
+				if (scope.isFunctionArgsScope)
 					break;
-				}
 			}
 		},
 		findVariable: function (name, includeUninitialized) {
