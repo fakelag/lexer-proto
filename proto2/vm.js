@@ -188,14 +188,59 @@ export const createInitialContext = () => {
 		__flag: 0, // debug flag. Used by tests.
 		scope: [{
 			isGlobal: true, // global scope
-			variables: [], // variables array for this scope
+			isBreaking: false, // currently in the process of breaking from the scope.
+			isFunctionArgsScope: false, // is is the args scope of a function
+			returnValue: undefined,
+			variables: [], // variables array for this scope. Type CVariable
+			functions: [], // functions array. Type CFunction
 		}],
+		pushScope: function(isFunctionArgsScope = false) {
+			this.scope.push({
+				isGlobal: false,
+				isBreaking: false,
+				isFunctionArgsScope,
+				returnValue: undefined,
+				variables: [],
+				functions: [],
+			})
+		},
+		popScope: function() {
+			this.scope.pop();
+		},
+		currentScope: function () {
+			return this.scope[this.scope.length - 1];
+		},
+		returnToCaller: function (returnValue) {
+			for (let i = this.scope.length - 1; i >= 0; --i) {
+				const scope = this.scope[i];
+
+				if (scope.isGlobal)
+					throw new Error(`unhandled_return_statement: scope=${i}`);
+
+				scope.isBreaking = true; // Stop executing the current tree
+
+				if (scope.isFunctionArgsScope) {
+					scope.returnValue = returnValue;
+					break;
+				}
+			}
+		},
 		findVariable: function (name, includeUninitialized) {
 			for (let i = this.scope.length - 1; i >= 0; --i) {
 				const variable = this.scope[i].variables.find((variable) => variable.name === name && (includeUninitialized || variable.value !== uninitValue));
 
 				if (variable)
 					return variable;
+			}
+
+			return undefined;
+		},
+		findFunction: function(name) {
+			for (let i = this.scope.length - 1; i >= 0; --i) {
+				const func = this.scope[i].functions.find((fnc) => fnc.name === name);
+
+				if (func)
+					return func;
 			}
 
 			return undefined;
