@@ -47,6 +47,7 @@ export const parse = (symbols) => {
 
 		switch (symbol.type) {
 			case 'NAME':
+			{
 				switch (symbol.token) {
 					case 'true':
 					case 'false':
@@ -76,6 +77,7 @@ export const parse = (symbols) => {
 						}
 					}
 				}
+			}
 			case 'STRCONST':
 			case 'DOUBLECONST':
 			case 'INTCONST':
@@ -157,7 +159,13 @@ export const parse = (symbols) => {
 			case 'EOE':
 				switch (symbol.token) {
 					case ';': return { _t: symbol.token, _dbg: symbol.dbg, lbp };
-					case ',': return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => [left, expression()]  };
+					case ',': return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => {
+						const right = expression();
+						const leftArray = Array.isArray(left) ? left : [left];
+						const rightArray = Array.isArray(right) ? right : [right];
+
+						return leftArray.concat(rightArray);
+					}};
 					default: throw new Error(`Unknown EOE operator: ${symbol.token}`);
 				}
 			default:
