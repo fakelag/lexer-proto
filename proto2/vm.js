@@ -27,22 +27,25 @@ const execRecursive = (node, context, resolveNames) => {
 
 					// Check that it doesn't already exist in the current scope.
 					// We don't check outer scopes, so shadowing variables is possible.
-					if (context.scope[context.scope.length - 1].variables.find((variable) => variable.name === varName))
+					if (context.currentScope().variables.find((variable) => variable.name === varName))
 						throw new Error(`variable_already_exists: ${varName}`);
 
-					context.scope[context.scope.length - 1].variables.push({ name: varName, value: uninitValue });
+					context.currentScope().variables.push({ name: varName, value: uninitValue });
 					return varName;
 				}
 				case 'SCOPE':
 				{
-					context.scope.push({
-						isGlobal: false,
-						variables: [],
-					});
+					context.pushScope();
 
-					const results = node.value.map((scopedNode) => execRecursive(scopedNode, context, true));
+					const results = [];
+					for (const scopedNode of node.value) {
+						results.push(execRecursive(scopedNode, context, true));
 
-					context.scope.pop();
+						if (context.currentScope().isBreaking)
+							break;
+					}
+
+					context.popScope();
 					return results;
 				}
 				case 'STRCONST':
@@ -141,15 +144,20 @@ const execRecursive = (node, context, resolveNames) => {
 					if (!Array.isArray(node.rhs))
 						throw new Error(`invalid_call_args_node: ${node.rhs}`);
 
-					switch (node.lhs.value) {
+					const functionName = node.lhs.value; // function names must be primitives
+					switch (functionName) {
 						case 'print':
+						{
 							// print uses the first arg and prints it. The rest are ignored.
+							// in the final version, we'll have virtual stdin, stdout and stderr
+							// that we'll use to direct IO
 							if (node.rhs.length < 1)
 								throw new Error(`insufficient_print_args: ${node.rhs}`);
 
 							const result = execRecursive(node.rhs[0], context, true);
 							console.log('PRINT: ', result);
 							return result;
+						}
 						case '__die':
 							// user triggered unsuccessful exit (debugging feature)
 							throw new Error('error_exit_unsuccessful');
@@ -157,7 +165,35 @@ const execRecursive = (node, context, resolveNames) => {
 							// increment context flag (debugging feature)
 							return ++context.__flag;
 						default:
-							throw new Error(`unknown_call_name: ${node.lhs}`);
+						{
+							const func = context.findFunction(functionName);
+
+							if (!func)
+								throw new Error(`unknown_call_name: ${node.lhs}`);
+
+							const callerArgs = node.rhs;
+
+							if (func.args.length !== callerArgs.length)
+								throw new Error(`invalid_fcall_args: ${callerArgs.length} expected ${func.args.length}`);
+
+							// create a(n outer) scope for the function arguments.
+							// this is where we'll handle calling by reference / calling by value
+							context.pushScope(true);
+
+							for (let i = 0; i < func.args.length; ++i) {
+								const fnArg = func.args[i];
+								const callArg = execRecursive(callerArgs[i], context, true);
+
+								const varName = execRecursive({ nodeType: 'simple', type: 'var', value: fnArg }, context, true);
+								const variable = context.findVariable(varName, true);
+								variable.value = callArg;
+							}
+
+							const result = execRecursive(func.code, context, true);
+
+							context.popScope();
+							return result;
+						}
 					}
 				}
 				case 'IF':
@@ -175,6 +211,20 @@ const execRecursive = (node, context, resolveNames) => {
 						execRecursive(node.rhs, context, true);
 
 					return null;
+				}
+				case 'FUNCTION':
+				{
+					const prototype = node.lhs;
+
+					if (prototype.type !== 'FUNCDEF')
+						throw new Error(`invalid_function_prototype: ${prototype}`);
+
+					const functionName = execRecursive(prototype.lhs, context, false);
+					if (context.scope[context.scope.length - 1].functions.find((func) => func.name === functionName))
+						throw new Error(`function_already_exists: ${functionName}`);
+
+					context.scope[context.scope.length - 1].functions.push({ name: functionName, args: prototype.rhs, code: node.rhs });
+					return functionName;
 				}
                 default:
 					throw new Error(`unknown_node_error: ${node.type}`);
