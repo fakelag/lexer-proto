@@ -415,6 +415,22 @@ describe('Conditional blocks', () => {
 		expect(results.length).toBe(4);
 		expect(results[3]).toBe(10);
 	});
+
+	test('while block (break keyword)', () => {
+		const context = vm.createInitialContext();
+		const results = vm.executeWithContext(parser.parse(lexer.lex('		\
+			var a = 0;														\
+			while (a < 500)													\
+			{																\
+				a = a + 1;													\
+				if (a == 324)												\
+					break;													\
+			}																\
+			if (a == 324) __flag();											\
+		')), context);
+
+		expect(context.__flag).toBe(1);
+	});
 });
 
 describe('Functions', () => {
