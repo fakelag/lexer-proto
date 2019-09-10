@@ -294,25 +294,25 @@ describe('Advanced operators', () => {
 	});
 
 	test('Increment & Decrement operators (++, --)', () => {
-		const results = vm.execute(parser.parse(lexer.lex('		\
-			var a = 0;											\
-			++a;												\
-			a;													\
-			a++;												\
-			a;													\
-			--a;												\
-			a;													\
-			a = 0;												\
-			if (++a == 1) {										\
-				a; 												\
-			}													\
-			if (a++ == 1) {										\
-				a; 												\
-			}													\
-			4 + ++a * 5 -(4 * a--) + a;							\
-		')));
+		const context = vm.createInitialContext();
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var a = 0;														\
+			++a;															\
+			a;																\
+			a++;															\
+			a;																\
+			--a;															\
+			a;																\
+			a = 0;															\
+			if (++a == 1) {													\
+				__flag(); 													\
+			}																\
+			if (a++ == 1) {													\
+				__flag();													\
+			}																\
+			4 + ++a * 5 -(4 * a--) + a;										\
+		')), context);
 
-		expect(results.length).toBe(11);
 		expect(results[1]).toBe(1);
 		expect(results[2]).toBe(1);
 		expect(results[3]).toBe(1);
@@ -320,10 +320,9 @@ describe('Advanced operators', () => {
 		expect(results[5]).toBe(1);
 		expect(results[6]).toBe(1);
 
-		expect(results[8][0]).toBe(1);
-		expect(results[9][0]).toBe(2);
-
 		expect(results[10]).toBe(9);
+
+		expect(context.__flag).toBe(2);
 	});
 
 	test('Negation operator (!)', () => {
@@ -382,25 +381,23 @@ describe('True & False keywords', () => {
 
 describe('Conditional blocks', () => {
 	test('if conditional block', () => {
-		const results = vm.execute(parser.parse(lexer.lex('		\
-			var a = 10;											\
-			var b = 5;											\
-			if (a == 10) {										\
-				a + 1;											\
-			}													\
-			if (a != 10) {										\
-				a + 2;											\
-			}													\
-			if (a + b > 14)										\
-			{													\
-				a + 3;											\
-			}													\
-		')));
+		const context = vm.createInitialContext();
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var a = 10;														\
+			var b = 5;														\
+			if (a == 10) {													\
+				__flag();													\
+			}																\
+			if (a != 10) {													\
+				__flag();													\
+			}																\
+			if (a + b > 14)													\
+			{																\
+				__flag();													\
+			}																\
+		')), context);
 
-		// [ 'ASSIGN (new) a=10', 'ASSIGN (new) b=5', [ 11 ], null, [ 13 ] ]
-		expect(results.length).toBe(5);
-		expect(results[2][0]).toBe(11);
-		expect(results[4][0]).toBe(13);
+		expect(context.__flag).toBe(2);
 	});
 
 	test('while block', () => {
@@ -415,7 +412,6 @@ describe('Conditional blocks', () => {
 			b;													\
 		')));
 
-		// [ 'ASSIGN (new) a=10', 'ASSIGN (new) b=0', null, 10 ]
 		expect(results.length).toBe(4);
 		expect(results[3]).toBe(10);
 	});
@@ -461,6 +457,39 @@ describe('Functions', () => {
 			}											\
 			addFlag(false, 3);							\
 			addFlag(true, 3);							\
+		')), context);
+
+		expect(context.__flag).toBe(3);
+	});
+
+	test('Return keyword', () => {
+		const context = vm.createInitialContext();
+		vm.executeWithContext(parser.parse(lexer.lex('	\
+			function square(number)						\
+			{											\
+				return number * number;					\
+			}											\
+			if (square(2) == 4) __flag();				\
+			if (square(4) == 16) __flag();				\
+		')), context);
+
+		expect(context.__flag).toBe(2);
+	});
+
+	test('Recursion', () => {
+		const context = vm.createInitialContext();
+		vm.executeWithContext(parser.parse(lexer.lex('	\
+			function fibonacci(number)					\
+			{											\
+				if (number <= 1)						\
+					return 1;							\
+														\
+				return fibonacci(number - 1)			\
+					+ fibonacci(number -2); 			\
+			}											\
+			if (fibonacci(5) == 8) __flag();			\
+			if (fibonacci(10) == 89) __flag();			\
+			if (fibonacci(15) == 987) __flag();			\
 		')), context);
 
 		expect(context.__flag).toBe(3);
