@@ -8,8 +8,8 @@ export const lex = (source) => {
         let type;
 		let token = text;
 
-		const isInteger = token.match(/[0-9]/g);
-		const isDouble = token.match(/[0-9]\./g);
+		const isInteger = token.match(/^[0-9]+$/g) !== null;
+		const isDouble = token.match(/^[0-9]+[\.][0-9]+$/g) !== null;
 
 		if (isInteger && !isDouble) {
 			type = 'INTCONST';
