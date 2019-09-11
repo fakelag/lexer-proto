@@ -23,7 +23,9 @@ const leftBindingPow = {
 	'**': 6,
 	'++': 10,
 	'--': 10,
-	'(': 20, // high binding for function name
+	'[': 20,
+	']': 0,
+	'(': 20,
 	')': 0,
 	'{': 0,
 	'}': 0,
@@ -168,8 +170,30 @@ export const parse = (symbols) => {
 							},
 						};
 					}
+					case '[':
+						return {
+							_t: symbol.token,
+							_dbg: symbol.dbg,
+							lbp,
+							value: () => {
+								const expr = expression();
+
+								if (!Array.isArray(expr) && expr.type === ']')
+									return simple('ARRAY', [], symbol.dbg);
+
+								matchToken(']');
+								return simple('ARRAY', expr, symbol.dbg);
+							},
+							eval: (left) => {
+								const right = expression();
+
+								matchToken(']');
+								return complex('ACCESS', left, right, symbol.dbg);
+							},
+						};
+					case ']':
 					case ')':
-						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(')', null) };
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, null) };
 					case '{':
 						return {
 							_t: symbol.token,
