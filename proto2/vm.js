@@ -26,7 +26,7 @@ const execRecursive = (node, context, resolveNames) => {
 				case 'return':
 				{
 					const result = execRecursive(node.value, context, true);
-					context.returnToCaller();
+					context.returnScope();
 
 					return result;
 				}
@@ -188,17 +188,21 @@ const execRecursive = (node, context, resolveNames) => {
 							if (func.args.length !== callerArgs.length)
 								throw new Error(`invalid_fcall_args: ${callerArgs.length} expected ${func.args.length}`);
 
+							const callerArgsResolved = [];
+
+							for (let i = 0; i < callerArgs.length; ++i)
+							callerArgsResolved.push(execRecursive(callerArgs[i], context, true));
+
 							// create a(n outer) scope for the function arguments.
 							// this is where we'll handle calling by reference / calling by value
-							context.pushScope(true);
+							context.pushScope(true, false);
 
 							for (let i = 0; i < func.args.length; ++i) {
 								const fnArg = func.args[i];
-								const callArg = execRecursive(callerArgs[i], context, true);
 
 								const varName = execRecursive({ nodeType: 'simple', type: 'var', value: fnArg }, context, true);
 								const variable = context.findVariable(varName, true);
-								variable.value = callArg;
+								variable.value = callerArgsResolved[i];
 							}
 
 							const result = execRecursive(func.code, context, true);
@@ -293,7 +297,7 @@ export const createInitialContext = () => {
 					break;
 			}
 		},
-		returnToCaller: function (returnValue) {
+		returnScope: function () {
 			for (let i = this.scope.length - 1; i >= 0; --i) {
 				const scope = this.scope[i];
 
@@ -307,11 +311,15 @@ export const createInitialContext = () => {
 			}
 		},
 		findVariable: function (name, includeUninitialized) {
+			const findFn = (variable) => (variable.name === name && (includeUninitialized || variable.value !== uninitValue));
 			for (let i = this.scope.length - 1; i >= 0; --i) {
-				const variable = this.scope[i].variables.find((variable) => variable.name === name && (includeUninitialized || variable.value !== uninitValue));
+				let variable = this.scope[i].variables.find(findFn);
 
 				if (variable)
 					return variable;
+
+				if (this.scope[i].isFunctionArgsScope)
+					return this.scope[0].variables.find(findFn);
 			}
 
 			return undefined;
@@ -322,6 +330,9 @@ export const createInitialContext = () => {
 
 				if (func)
 					return func;
+
+				if (this.scope[i].isFunctionArgsScope)
+					return this.scope[0].functions.find((fnc) => fnc.name === name);
 			}
 
 			return undefined;

@@ -327,7 +327,7 @@ describe('Advanced operators', () => {
 
 	test('Negation operator (!)', () => {
 		const context = vm.createInitialContext();
-		const results = vm.executeWithContext(parser.parse(lexer.lex('	\
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
 			var a = false;												\
 			if (!a) {													\
 				__flag();												\
@@ -346,13 +346,13 @@ describe('Advanced operators', () => {
 
 	test('Logical operators (&&, ||)', () => {
 		const context = vm.createInitialContext();
-		const results = vm.executeWithContext(parser.parse(lexer.lex('	\
-			var a = 1;													\
-			var b = 2;													\
-			if (a == 1 && b == 2) __flag();								\
-			if (a == 1 && b == 1) __die();								\
-			if (a == 1 || b == 1) __flag();								\
-			if (a == 3 || b == 3) __die();								\
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var a = 1;														\
+			var b = 2;														\
+			if (a == 1 && b == 2) __flag();									\
+			if (a == 1 && b == 1) __die();									\
+			if (a == 1 || b == 1) __flag();									\
+			if (a == 3 || b == 3) __die();									\
 		')), context);
 
 		expect(context.__flag).toBe(2);
@@ -362,17 +362,17 @@ describe('Advanced operators', () => {
 describe('True & False keywords', () => {
 	test('Running code', () => {
 		const context = vm.createInitialContext();
-		const results = vm.executeWithContext(parser.parse(lexer.lex('	\
-			var a = true;												\
-			if (a) {													\
-				__flag();												\
-			}															\
-			if (a == false) {											\
-				__die();												\
-			}															\
-			if (a == true) {											\
-				__flag();												\
-			}															\
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var a = true;													\
+			if (a) {														\
+				__flag();													\
+			}																\
+			if (a == false) {												\
+				__die();													\
+			}																\
+			if (a == true) {												\
+				__flag();													\
+			}																\
 		')), context);
 
 		expect(context.__flag).toBe(2);
@@ -418,7 +418,7 @@ describe('Conditional blocks', () => {
 
 	test('while block (break keyword)', () => {
 		const context = vm.createInitialContext();
-		const results = vm.executeWithContext(parser.parse(lexer.lex('		\
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
 			var a = 0;														\
 			while (a < 500)													\
 			{																\
@@ -509,5 +509,34 @@ describe('Functions', () => {
 		')), context);
 
 		expect(context.__flag).toBe(3);
+	});
+
+	test('Scope access (Global)', () => {
+		const context = vm.createInitialContext();
+		vm.executeWithContext(parser.parse(lexer.lex('	\
+			var globalVariable = 42;					\
+			function func()								\
+			{											\
+				if (globalVariable == 42) __flag();		\
+			}											\
+			func();										\
+		')), context);
+
+		expect(context.__flag).toBe(1);
+	});
+
+	test('Scope access (Invalid access)', () => {
+		const syntaxTree = parser.parse(lexer.lex('		\
+			function func()								\
+			{											\
+				localVariable += 1;						\
+			}											\
+			{											\
+				var localVariable = 33;					\
+				func();									\
+			}											\
+		'));
+
+		expect(() => vm.execute(syntaxTree)).toThrow();
 	});
 });
