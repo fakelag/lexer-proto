@@ -45,6 +45,10 @@ const execRecursive = (node, context, resolveNames) => {
 					context.currentScope().variables.push({ name: varName, value: uninitValue });
 					return varName;
 				}
+				case 'ARRAY':
+				{
+					return node.value.map((value) => ({ value: execRecursive(value, context, true) }));
+				}
 				case 'SCOPE':
 				{
 					context.pushScope();
@@ -124,9 +128,19 @@ const execRecursive = (node, context, resolveNames) => {
 					if (isAdditive && isNew) // attempting to += to a new variable
 						throw new Error(`additive_assign_to_undefined_variable: (line ${node._dbgInfo.line} col ${node._dbgInfo.col})`);
 
-					const variableName = execRecursive(node.lhs, context, false);
-                    const newValue = execRecursive(node.rhs, context, true);
-                    const variable = context.findVariable(variableName, true);
+					let variable;
+					const newValue = execRecursive(node.rhs, context, true);
+
+					let variableNameOrIndice = execRecursive(node.lhs, context, false);
+
+					if (typeof variableNameOrIndice === 'object') {
+						if (variableNameOrIndice.type !== 'arrayindice')
+							throw new Error(`unknown_variable_identifier: ${variableNameOrIndice}`);
+
+						variable = variableNameOrIndice.array[variableNameOrIndice.index];
+					} else {
+						variable = context.findVariable(variableNameOrIndice, true);
+					}
 
 					if (variable === undefined)
 						throw new Error(`unknown_name_error: ${variableName}`); // variable was not found
@@ -211,6 +225,16 @@ const execRecursive = (node, context, resolveNames) => {
 							return result;
 						}
 					}
+				}
+				case 'ACCESS':
+				{
+					const array = execRecursive(node.lhs, context, true);
+					const index = execRecursive(node.rhs, context, true);
+
+					if (!resolveNames)
+						return { type: 'arrayindice', array, index };
+
+					return array[index].value;
 				}
 				case 'IF':
 				{

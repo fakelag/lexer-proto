@@ -61,6 +61,8 @@ export const lex = (source) => {
 				case '--':
 					type = 'ARIT';
 					break;
+				case '[':
+				case ']':
 				case ')':
 				case '(':
 				case '{':
@@ -157,6 +159,8 @@ export const lex = (source) => {
 				currentSymbol = '';
 				break;
 			}
+			case '[':
+			case ']':
 			case ')':
 			case '(':
 			case '{':

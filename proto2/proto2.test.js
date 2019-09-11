@@ -540,3 +540,74 @@ describe('Functions', () => {
 		expect(() => vm.execute(syntaxTree)).toThrow();
 	});
 });
+
+describe('Arrays', () => {
+	test('Running code (Simple arrays)', () => {
+		const context = vm.createInitialContext();
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var arr = [1, 2, 3, 4];											\
+			if (arr[0] == 1) __flag();										\
+			if (arr[1 + 2] == 4) __flag();									\
+		')), context);
+
+		expect(context.__flag).toBe(2);
+	});
+
+	test('Running code (2D arrays)', () => {
+		const context = vm.createInitialContext();
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var arr = 	[[1, 1],											\
+						[0, 0],												\
+						[0, 1],												\
+						[1, 1]];											\
+			var i = 0;														\
+			var j = 0;														\
+			while(i < 4) {													\
+				while(j < 2) {												\
+					if (arr[i][j] == 1) __flag();							\
+					++j;													\
+				}															\
+				j = 0;														\
+				++i;														\
+			}																\
+		')), context);
+
+		expect(context.__flag).toBe(5);
+	});
+
+	test('Running code (3D arrays)', () => {
+		const context = vm.createInitialContext();
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var arr = 	[[[1, 1], [0, 1]], [[1, 1], [0, 0]],				\
+						[[1, 1], [0, 0]], [[0, 1], [1, 0]]];				\
+			var a = 0;														\
+			var b = 0;														\
+			var c = 0;														\
+			while(a < 4) {													\
+				while(b < 2) {												\
+					while(c < 2) {											\
+						if (arr[a][b][c] == 1) __flag();					\
+						++c;												\
+					}														\
+					c = 0;													\
+					++b;													\
+				}															\
+				b = 0;														\
+				++a;														\
+			}																\
+		')), context);
+
+		expect(context.__flag).toBe(9);
+	});
+
+	test('Running code (Array setter)', () => {
+		const context = vm.createInitialContext();
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var arr = [1, 2, 3, 4];											\
+			arr[1] = "abcdefg";												\
+			if (arr[1] == "abcdefg") __flag();								\
+		')), context);
+
+		expect(context.__flag).toBe(1);
+	});
+});
