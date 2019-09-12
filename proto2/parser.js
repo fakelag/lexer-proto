@@ -160,7 +160,7 @@ export const parse = (symbols) => {
 								return expr;
 							},
 							eval: (left) => {
-								const right = expression();
+								const right = expression(0, true);
 
 								if (!Array.isArray(right) && right.type === ')') // function takes no arguments
 									return complex('CALL', left, [], symbol.dbg);
@@ -249,7 +249,7 @@ export const parse = (symbols) => {
 		parserState.nextToken();
 	};
 
-	const expression = (rbp = 0) => {
+	const expression = (rbp = 0, isFunctionCall = false) => {
 		let oldToken = parserState.nextToken();
 		let left = oldToken.value();
 
@@ -258,6 +258,11 @@ export const parse = (symbols) => {
 
 		if (parserState.currentToken() === undefined)
 			throw new Error(`Expected: ; at line ${oldToken._dbg.line} col ${oldToken._dbg.col + 1}`);
+
+		if (isFunctionCall) {
+			if (left.type == ')')
+				return left;
+		}
 
 		while (rbp < parserState.currentToken().lbp) {
 			const t = parserState.currentToken();
