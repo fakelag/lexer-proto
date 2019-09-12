@@ -357,6 +357,17 @@ describe('Advanced operators', () => {
 
 		expect(context.__flag).toBe(2);
 	});
+
+	test('Access operator ([]))', () => {
+		const context = vm.createInitialContext();
+		const { results } = vm.executeWithContext(parser.parse(lexer.lex('	\
+			var string = "abcdefg";											\
+			if (string[0] == "a") __flag();									\
+			if (string[2] == "c") __flag();									\
+		')), context);
+
+		expect(context.__flag).toBe(2);
+	});
 });
 
 describe('True & False keywords', () => {
