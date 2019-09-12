@@ -25,6 +25,7 @@ const leftBindingPow = {
 	'--': 10,
 	'[': 20,
 	']': 0,
+	'.': 30,
 	'(': 20,
 	')': 0,
 	'{': 0,
@@ -113,7 +114,7 @@ export const parse = (symbols) => {
 			case 'STRCONST':
 			case 'DOUBLECONST':
 			case 'INTCONST':
-				return { _t: symbol.token, _dbg: symbol.dbg, lbp: 0, value: () => simple(symbol.type, symbol.token, symbol.dbg)};
+				return { _t: symbol.token, _dbg: symbol.dbg, lbp: 0, value: () => simple(symbol.type, symbol.token, symbol.dbg) };
 			case 'LOGICAL':
 			case 'EQUALITY':
 			case 'ASSIGN':
@@ -160,7 +161,7 @@ export const parse = (symbols) => {
 								return expr;
 							},
 							eval: (left) => {
-								const right = expression();
+								const right = expression(0, true);
 
 								if (!Array.isArray(right) && right.type === ')') // function takes no arguments
 									return complex('CALL', left, [], symbol.dbg);
@@ -193,7 +194,7 @@ export const parse = (symbols) => {
 						};
 					case ']':
 					case ')':
-						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, null) };
+						return { _t: symbol.token, _dbg: symbol.dbg, lbp, value: () => simple(symbol.token, null, symbol.dbg) };
 					case '{':
 						return {
 							_t: symbol.token,
@@ -214,6 +215,15 @@ export const parse = (symbols) => {
 						throw new Error(`Unknown CTRL operator: ${symbol.token}`);
 				}
 			}
+			case 'DOT':
+				return { _t: symbol.token, _dbg: symbol.dbg, lbp, eval: (left) => {
+					const right = expression(lbp);
+
+					if (left.type === 'INTCONST' && right.type === 'INTCONST')
+						return simple('DOUBLECONST', Number.parseFloat(`${left.value}.${right.value}`), symbol.dbg);
+
+					return complex(symbol.type, left, right, symbol.dbg);
+				} };
 			case 'EOE':
 				switch (symbol.token) {
 					case ';': return { _t: symbol.token, _dbg: symbol.dbg, lbp };
@@ -249,7 +259,7 @@ export const parse = (symbols) => {
 		parserState.nextToken();
 	};
 
-	const expression = (rbp = 0) => {
+	const expression = (rbp = 0, isFunctionCall = false) => {
 		let oldToken = parserState.nextToken();
 		let left = oldToken.value();
 
@@ -258,6 +268,11 @@ export const parse = (symbols) => {
 
 		if (parserState.currentToken() === undefined)
 			throw new Error(`Expected: ; at line ${oldToken._dbg.line} col ${oldToken._dbg.col + 1}`);
+
+		if (isFunctionCall) {
+			if (left.type == ')')
+				return left;
+		}
 
 		while (rbp < parserState.currentToken().lbp) {
 			const t = parserState.currentToken();

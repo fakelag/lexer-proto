@@ -42,7 +42,7 @@ const execRecursive = (node, context, resolveNames) => {
 					if (context.currentScope().variables.find((variable) => variable.name === varName))
 						throw new Error(`variable_already_exists: ${varName}`);
 
-					context.currentScope().variables.push({ name: varName, value: uninitValue });
+					context.currentScope().variables.push({ name: varName, value: uninitValue, varType: 'undefined' });
 					return varName;
 				}
 				case 'ARRAY':
@@ -103,14 +103,21 @@ const execRecursive = (node, context, resolveNames) => {
 					if (variable === undefined)
 						throw new Error(`unknown_name_error: ${variableName}`);
 
-					const oldValue = variable.value;
+					switch (variable.varType) {
+						case 'number':
+						{
+							const oldValue = variable.value;
 
-					if (node.type === '++')
-						++variable.value;
-					else if (node.type === '--')
-						--variable.value;
+							if (node.type === '++')
+								++variable.value;
+							else if (node.type === '--')
+								--variable.value;
 
-					return node.rhs === 'pre' ? variable.value : oldValue;
+							return node.rhs === 'pre' ? variable.value : oldValue;
+						}
+						default:
+							throw new Error(`unsupported_operation: ${node.type} on varType ${variable.varType}`);
+					}
 				}
 				case '/=':
 				case '*=':
@@ -146,6 +153,9 @@ const execRecursive = (node, context, resolveNames) => {
 						throw new Error(`unknown_name_error: ${variableName}`); // variable was not found
 
 					if (isAdditive) {
+						if (variable.varType !== 'number')
+							throw new Error(`unsupported_operation: ${node.type} on varType ${variable.varType}`);
+
 						switch (node.type[0]) {
 							case '*': variable.value = variable.value * newValue; break;
 							case '/': variable.value = variable.value / newValue; break;
@@ -156,6 +166,9 @@ const execRecursive = (node, context, resolveNames) => {
 						}
 					} else {
 						variable.value = newValue;
+
+						// update type
+						variable.varType = typeof newValue;
 					}
 
 					return isNew
@@ -244,6 +257,16 @@ const execRecursive = (node, context, resolveNames) => {
 					} else {
 						throw new Error(`invalid_access_operation: ${node.lhs.type}`);
 					}
+				}
+				case 'DOT':
+				{
+					const outerVariable = context.findVariable(node.lhs.value, false);
+
+					if (outerVariable.varType !== 'object')
+						throw new Error(`invalid_dot_left_operand: ${outerVariable.varType}`);
+
+					const innerVariable = execRecursive(node.rhs, context, true);
+					return outerVariable[innerVariable.value]
 				}
 				case 'IF':
 				{

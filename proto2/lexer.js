@@ -32,6 +32,9 @@ export const lex = (source) => {
 			token = text.substring(1, text.length - 1);
 		} else {
 			switch (token) {
+				case '.':
+					type = 'DOT';
+					break;
 				case '&&':
 				case '||':
 					type = 'LOGICAL';
@@ -167,6 +170,7 @@ export const lex = (source) => {
 			case '}':
 			case ';':
 			case ',':
+			case '.':
 			{
 				if (currentSymbol.length)
 					symbolStack.push(createSymbol(currentSymbol));
