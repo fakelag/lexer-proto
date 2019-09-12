@@ -228,13 +228,22 @@ const execRecursive = (node, context, resolveNames) => {
 				}
 				case 'ACCESS':
 				{
-					const array = execRecursive(node.lhs, context, true);
+					const element = execRecursive(node.lhs, context, true);
 					const index = execRecursive(node.rhs, context, true);
 
-					if (!resolveNames)
-						return { type: 'arrayindice', array, index };
+					if (Array.isArray(element)) {
+						if (!resolveNames)
+							return { type: 'arrayindice', array: element, index };
 
-					return array[index].value;
+						return element[index].value;
+					} else if (typeof element === 'string') {
+						if (!resolveNames)
+							throw new Error(`string_access_invalid_name: resolveNames=${resolveNames} type=${node.lhs.type}`);
+
+						return element.charAt(index);
+					} else {
+						throw new Error(`invalid_access_operation: ${node.lhs.type}`);
+					}
 				}
 				case 'IF':
 				{
